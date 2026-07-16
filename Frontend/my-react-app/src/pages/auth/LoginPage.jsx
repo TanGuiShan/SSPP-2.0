@@ -1,112 +1,107 @@
-// pages/LoginPage.jsx
-// Handles the sign-in form. Clean and simple — all it does is:
-//  1. Collect email + password
-//  2. Validate them
-//  3. Call the API
-//  4. On success → navigate to the app (placeholder for now)
-//
-// Props:
-//   onNavigate(page) - called when user wants to switch pages
-//                      e.g. onNavigate('register')
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import AuthLayout from "../../layouts/AuthLayout";
+import { Input } from "../../components/common/Input";
+import Button from "../../components/common/Button";
+import { useAuth } from "../../hooks/useAuth";
 
-import FormInput  from '../components/FormInput'
-import useAuth, { validateEmail } from '../hooks/useAuth'
-import { loginUser } from '../api/auth'
+const HOME_BY_ROLE = {
+  school: "/school/dashboard",
+  army: "/army/dashboard",
+  admin: "/admin/dashboard",
+};
 
-export default function LoginPage({ onNavigate }) {
-  const {
-    email, setEmail,
-    password, setPassword,
-    showPassword, setShowPassword,
-    loading, error, setError,
-    withLoading,
-  } = useAuth()
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState("school");
 
-  async function handleSubmit(e) {
-    e.preventDefault() // stop the browser reloading the page
+  const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
-    // Client-side validation first (fast, no network needed)
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address.')
-      return
-    }
-    if (!password) {
-      setError('Password is required.')
-      return
-    }
-
-    // withLoading() handles: spinner on, call API, catch errors,
-    // spinner off. We just check if it returned a result.
-    const result = await withLoading(() => loginUser({ email, password }))
-
-    if (result) {
-      // TODO: redirect to your main app dashboard
-      // e.g. navigate('/dashboard')  with React Router
-      console.log('Logged in! Token stored. Redirect here.')
-    }
-  }
-
-  // The "Show/Hide" button passed into FormInput's rightLabel slot
-  const showToggle = (
-    <button
-      type="button"
-      className="show-toggle"
-      onClick={() => setShowPassword(v => !v)}
-    >
-      {showPassword ? 'Hide' : 'Show'}
-    </button>
-  )
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    login({ email: form.email, role });
+    navigate(HOME_BY_ROLE[role]);
+  };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit} noValidate>
-      <h1 className="auth-title">Welcome back</h1>
-      <p className="auth-sub">Sign in to continue</p>
+    <AuthLayout>
+      <div className="text-center mb-8">
+        <h1 className="text-4xl" style={{ fontFamily: "var(--font-display)" }}>Welcome Back</h1>
+        <p className="text-sm text-[#78716C] mt-2">Sign in to continue</p>
+      </div>
 
-      <FormInput
-        id="login-email"
-        label="Email"
-        type="email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        placeholder="you@example.com"
-        autoComplete="email"
-      />
+      <form onSubmit={handleSubmit}>
+        <Input
+          label="Email"
+          type="email"
+          placeholder="you@example.com.sg"
+          value={form.email}
+          onChange={update("email")}
+          required
+        />
 
-      <FormInput
-        id="login-password"
-        label="Password"
-        type={showPassword ? 'text' : 'password'}
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        placeholder="••••••••"
-        autoComplete="current-password"
-        rightLabel={showToggle}
-      />
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-sm text-[#44403C]">Password</label>
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="text-xs text-[#57534E] underline"
+            >
+              {showPassword ? "hide" : "show"}
+            </button>
+          </div>
+          <input
+            type={showPassword ? "text" : "password"}
+            value={form.password}
+            onChange={update("password")}
+            required
+            className="w-full rounded-lg bg-[#F5F5F4] border border-transparent px-4 py-3 text-sm focus:bg-white focus:border-[#1C1917] focus:outline-none transition-colors"
+          />
+        </div>
 
-      {/* Only renders when there's an error */}
-      {error && <p className="auth-error" role="alert">{error}</p>}
+        {/* Demo-only: pick which POV to land in. Remove once real auth returns a role. */}
+        <div className="mb-5">
+          <label className="text-sm text-[#44403C] block mb-1.5">Sign in as</label>
+          <div className="flex gap-2">
+            {["school", "army", "admin"].map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRole(r)}
+                className={`flex-1 py-2 rounded-lg text-xs capitalize transition-colors ${
+                  role === r ? "bg-[#1C1917] text-white" : "bg-[#F5F5F4] text-[#57534E] hover:bg-[#E7E5E4]"
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <button className="btn-primary" type="submit" disabled={loading}>
-        {loading ? <span className="btn-spinner" /> : 'Sign in'}
-      </button>
+        <Button type="submit" fullWidth size="lg">Sign in</Button>
+      </form>
 
-      <button
-        type="button"
-        className="btn-link"
-        onClick={() => onNavigate('forgot')}
-      >
-        Forgot password?
-      </button>
+      <div className="text-center mt-4">
+        <Link to="/forgot-password" className="text-sm text-[#44403C] underline">
+          Forgot password?
+        </Link>
+      </div>
 
-      <div className="auth-divider"><span>New here?</span></div>
+      <div className="flex items-center gap-3 my-6">
+        <div className="flex-1 h-px bg-[#E7E5E4]" />
+        <span className="text-[11px] tracking-widest uppercase text-[#A8A29E]">New here?</span>
+        <div className="flex-1 h-px bg-[#E7E5E4]" />
+      </div>
 
-      <button
-        type="button"
-        className="btn-secondary"
-        onClick={() => onNavigate('register')}
-      >
-        Create an account
-      </button>
-    </form>
-  )
+      <Link to="/register">
+        <Button variant="secondary" fullWidth size="lg">Create an account</Button>
+      </Link>
+
+      <p className="text-center text-xs text-[#A8A29E] mt-6">Demo UI — for presentation purposes</p>
+    </AuthLayout>
+  );
 }

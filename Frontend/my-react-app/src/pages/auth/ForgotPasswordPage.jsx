@@ -1,66 +1,48 @@
-// pages/ForgotPasswordPage.jsx
-// Simple single-field form: user enters their email,
-// backend sends a password-reset link.
-//
-// Props:
-//   onNavigate(page)      - switches to another page
-//   onPendingEmail(email) - shares the email with the confirmation screen
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import AuthLayout from "../../layouts/AuthLayout";
+import { Input } from "../../components/common/Input";
+import Button from "../../components/common/Button";
 
-import FormInput from '../components/FormInput'
-import useAuth, { validateEmail } from '../hooks/useAuth'
-import { forgotPassword } from '../api/auth'
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
 
-export default function ForgotPasswordPage({ onNavigate, onPendingEmail }) {
-  const {
-    email,   setEmail,
-    loading, error, setError,
-    withLoading,
-  } = useAuth()
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address.')
-      return
-    }
-
-    const result = await withLoading(() => forgotPassword({ email }))
-
-    if (result) {
-      onPendingEmail(email)
-      onNavigate('pending')
-    }
-  }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSent(true);
+  };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit} noValidate>
-      <h1 className="auth-title">Reset password</h1>
-      <p className="auth-sub">We'll send a reset link to your inbox</p>
+    <AuthLayout>
+      <div className="text-center mb-8">
+        <h1 className="text-4xl" style={{ fontFamily: "var(--font-display)" }}>Reset password</h1>
+        <p className="text-sm text-[#78716C] mt-2">
+          {sent ? `Reset link sent to ${email}` : "We'll send a reset link to your inbox"}
+        </p>
+      </div>
 
-      <FormInput
-        id="forgot-email"
-        label="Email"
-        type="email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        placeholder="you@example.com"
-        autoComplete="email"
-      />
+      {!sent ? (
+        <form onSubmit={handleSubmit}>
+          <Input
+            label="Email"
+            type="email"
+            placeholder="you@example.com.sg"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Button type="submit" fullWidth size="lg">Send reset link</Button>
+        </form>
+      ) : (
+        <div className="rounded-lg bg-[#DCFCE7] text-[#15803D] px-4 py-3 text-sm text-center">
+          Check your inbox. The link expires in 30 minutes.
+        </div>
+      )}
 
-      {error && <p className="auth-error" role="alert">{error}</p>}
-
-      <button className="btn-primary" type="submit" disabled={loading}>
-        {loading ? <span className="btn-spinner" /> : 'Send reset link'}
-      </button>
-
-      <button
-        type="button"
-        className="btn-link"
-        onClick={() => onNavigate('login')}
-      >
-        ← Back to sign in
-      </button>
-    </form>
-  )
+      <div className="text-center mt-5">
+        <Link to="/login" className="text-sm text-[#44403C] underline">← Back to sign in</Link>
+      </div>
+    </AuthLayout>
+  );
 }

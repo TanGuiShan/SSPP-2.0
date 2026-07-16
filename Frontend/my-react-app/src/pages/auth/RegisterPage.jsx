@@ -1,119 +1,86 @@
-// pages/RegisterPage.jsx
-// Handles new user sign-up:
-//  1. Collect email, password, confirm password
-//  2. Validate (format, strength, match)
-//  3. Call the API → backend creates Neo4j node + sends verify email
-//  4. On success → show the "check your inbox" screen
-//
-// Props:
-//   onNavigate(page)          - switches to another page
-//   onPendingEmail(email)     - tells App.jsx which email to display
-//                               on the confirmation screen
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import AuthLayout from "../../layouts/AuthLayout";
+import { Input } from "../../components/common/Input";
+import Button from "../../components/common/Button";
 
-import FormInput        from '../components/FormInput'
-import PasswordStrength from '../components/PasswordStrength'
-import useAuth, { validateEmail } from '../hooks/useAuth'
-import { registerUser } from '../api/auth'
+export default function RegisterPage() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ email: "", password: "", confirm: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
-export default function RegisterPage({ onNavigate, onPendingEmail }) {
-  const {
-    email,           setEmail,
-    password,        setPassword,
-    confirmPassword, setConfirmPassword,
-    showPassword,    setShowPassword,
-    loading, error,  setError,
-    withLoading,
-  } = useAuth()
+  const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-
-    // ── Validate before hitting the network ──────────────────────
-    if (!validateEmail(email)) {
-      setError('This email address looks invalid or is not accepted.')
-      return
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (form.password.length < 8) {
+      setError("Password needs at least 8 characters.");
+      return;
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
+    if (form.password !== form.confirm) {
+      setError("Passwords don't match. Re-enter to continue.");
+      return;
     }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.')
-      return
-    }
-
-    const result = await withLoading(() => registerUser({ email, password }))
-
-    if (result) {
-      // Pass the email up so the confirmation screen can show it,
-      // then navigate to the pending screen
-      onPendingEmail(email)
-      onNavigate('pending')
-    }
-  }
-
-  const showToggle = (
-    <button
-      type="button"
-      className="show-toggle"
-      onClick={() => setShowPassword(v => !v)}
-    >
-      {showPassword ? 'Hide' : 'Show'}
-    </button>
-  )
+    setError("");
+    navigate("/verify-email");
+  };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit} noValidate>
-      <h1 className="auth-title">Create account</h1>
-      <p className="auth-sub">Get started — it's free</p>
+    <AuthLayout>
+      <div className="text-center mb-8">
+        <h1 className="text-4xl" style={{ fontFamily: "var(--font-display)" }}>Create account</h1>
+        <p className="text-sm text-[#78716C] mt-2">Get started — it's free</p>
+      </div>
 
-      <FormInput
-        id="reg-email"
-        label="Email"
-        type="email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        placeholder="you@example.com"
-        autoComplete="email"
-      />
+      <form onSubmit={handleSubmit}>
+        <Input
+          label="Email"
+          type="email"
+          placeholder="you@example.com.sg"
+          value={form.email}
+          onChange={update("email")}
+          required
+        />
 
-      <FormInput
-        id="reg-password"
-        label="Password"
-        type={showPassword ? 'text' : 'password'}
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        placeholder="Min. 8 characters"
-        autoComplete="new-password"
-        rightLabel={showToggle}
-      />
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-sm text-[#44403C]">Password</label>
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="text-xs text-[#57534E] underline"
+            >
+              {showPassword ? "hide" : "show"}
+            </button>
+          </div>
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Min. 8 characters"
+            value={form.password}
+            onChange={update("password")}
+            required
+            className="w-full rounded-lg bg-[#F5F5F4] border border-transparent px-4 py-3 text-sm placeholder:text-[#A8A29E] focus:bg-white focus:border-[#1C1917] focus:outline-none transition-colors"
+          />
+        </div>
 
-      {/* Live strength bar — only appears once user starts typing */}
-      {password && <PasswordStrength password={password} />}
+        <Input
+          label="Confirm password"
+          type={showPassword ? "text" : "password"}
+          placeholder="Re-enter password"
+          value={form.confirm}
+          onChange={update("confirm")}
+          required
+        />
 
-      <FormInput
-        id="reg-confirm"
-        label="Confirm password"
-        type={showPassword ? 'text' : 'password'}
-        value={confirmPassword}
-        onChange={e => setConfirmPassword(e.target.value)}
-        placeholder="Re-enter password"
-        autoComplete="new-password"
-      />
+        {error && <p className="text-sm text-[#C2542F] mb-4 -mt-2">{error}</p>}
 
-      {error && <p className="auth-error" role="alert">{error}</p>}
+        <Button type="submit" fullWidth size="lg">Create account</Button>
+      </form>
 
-      <button className="btn-primary" type="submit" disabled={loading}>
-        {loading ? <span className="btn-spinner" /> : 'Create account'}
-      </button>
-
-      <button
-        type="button"
-        className="btn-link"
-        onClick={() => onNavigate('login')}
-      >
-        ← Back to sign in
-      </button>
-    </form>
-  )
+      <div className="text-center mt-5">
+        <Link to="/login" className="text-sm text-[#44403C] underline">← Back to sign in</Link>
+      </div>
+    </AuthLayout>
+  );
 }
