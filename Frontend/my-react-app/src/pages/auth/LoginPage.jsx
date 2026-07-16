@@ -7,9 +7,18 @@ import { useAuth } from "../../hooks/useAuth";
 
 const HOME_BY_ROLE = {
   school: "/school/dashboard",
-  army: "/army/dashboard",
+  "army-unit": "/army/dashboard",
+  "army-ambassador": "/army/dashboard",
   admin: "/admin/dashboard",
 };
+
+// Demo-only: labels for the role picker below.
+const DEMO_ROLES = [
+  { value: "school", label: "School" },
+  { value: "army-unit", label: "Unit" },
+  { value: "army-ambassador", label: "Ambassador" },
+  { value: "admin", label: "Admin" },
+];
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -66,17 +75,19 @@ export default function LoginPage() {
         {/* Demo-only: pick which POV to land in. Remove once real auth returns a role. */}
         <div className="mb-5">
           <label className="text-sm text-[#44403C] block mb-1.5">Sign in as</label>
-          <div className="flex gap-2">
-            {["school", "army", "admin"].map((r) => (
+          <div className="grid grid-cols-2 gap-2">
+            {DEMO_ROLES.map((r) => (
               <button
-                key={r}
+                key={r.value}
                 type="button"
-                onClick={() => setRole(r)}
-                className={`flex-1 py-2 rounded-lg text-xs capitalize transition-colors ${
-                  role === r ? "bg-[#1C1917] text-white" : "bg-[#F5F5F4] text-[#57534E] hover:bg-[#E7E5E4]"
+                onClick={() => setRole(r.value)}
+                className={`py-2 rounded-lg text-xs transition-colors ${
+                  role === r.value
+                    ? "bg-[#1C1917] text-white"
+                    : "bg-[#F5F5F4] text-[#57534E] hover:bg-[#E7E5E4]"
                 }`}
               >
-                {r}
+                {r.label}
               </button>
             ))}
           </div>

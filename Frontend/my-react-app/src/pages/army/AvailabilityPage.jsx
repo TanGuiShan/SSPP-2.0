@@ -21,7 +21,10 @@ function buildMonthGrid(year, month) {
 export default function AvailabilityPage() {
   const [cursor, setCursor] = useState({ year: 2026, month: 5 }); // June 2026
   const [selected, setSelected] = useState([]);
-  const [timing, setTiming] = useState(TIMINGS[0]);
+  const [timings, setTimings] = useState([TIMINGS[0]]);
+
+  const toggleTiming = (t) =>
+    setTimings((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const cells = buildMonthGrid(cursor.year, cursor.month);
 
@@ -54,7 +57,10 @@ export default function AvailabilityPage() {
         title="Available Schedule"
         subtitle="Select the dates your unit is available for engagement"
         action={
-          <Button disabled={selected.length === 0} onClick={() => console.log(selected, timing)}>
+          <Button
+            disabled={selected.length === 0 || timings.length === 0}
+            onClick={() => console.log({ dates: selected, timings })}
+          >
             Save availability
           </Button>
         }
@@ -142,22 +148,42 @@ export default function AvailabilityPage() {
       {/* Preferred timing */}
       <div className="card p-6">
         <h2 className="text-lg font-semibold mb-1">Preferred timing</h2>
-        <p className="text-sm text-[#78716C] mb-4">Applies to every date you selected above</p>
+        <p className="text-sm text-[#78716C] mb-4">
+          Select every slot your unit can do — applies to all dates chosen above
+        </p>
         <div className="flex gap-3 flex-wrap">
-          {TIMINGS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTiming(t)}
-              className={`px-4 py-2.5 rounded-lg text-sm border transition-colors ${
-                timing === t
-                  ? "border-[#1C1917] bg-[#1C1917] text-white"
-                  : "border-[#E7E5E4] text-[#44403C] hover:bg-[#F5F5F4]"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+          {TIMINGS.map((t) => {
+            const active = timings.includes(t);
+            return (
+              <button
+                key={t}
+                onClick={() => toggleTiming(t)}
+                aria-pressed={active}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm border transition-colors ${
+                  active
+                    ? "border-[#1C1917] bg-[#1C1917] text-white"
+                    : "border-[#E7E5E4] text-[#44403C] hover:bg-[#F5F5F4]"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                    active ? "bg-white border-white" : "border-[#A8A29E]"
+                  }`}
+                >
+                  {active && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1C1917" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12l5 5L20 6" />
+                    </svg>
+                  )}
+                </span>
+                {t}
+              </button>
+            );
+          })}
         </div>
+        {timings.length === 0 && (
+          <p className="text-xs text-[#C2542F] mt-3">Pick at least one timing slot.</p>
+        )}
       </div>
     </>
   );

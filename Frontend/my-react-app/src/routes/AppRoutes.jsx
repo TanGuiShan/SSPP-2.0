@@ -10,6 +10,9 @@ import AdminLayout from "../layouts/AdminLayout";
 // Auth
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
+import SchoolSignupPage from "../pages/auth/SchoolSignupPage";
+import UnitSignupPage from "../pages/auth/UnitSignupPage";
+import AmbassadorSignupPage from "../pages/auth/AmbassadorSignupPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import VerifyEmailPage from "../pages/auth/VerifyEmailPage";
 
@@ -26,6 +29,7 @@ import ArmyDashboardPage from "../pages/army/ArmyDashboardPage";
 import AvailabilityPage from "../pages/army/AvailabilityPage";
 import ArmyMatchesPage from "../pages/army/ArmyMatchesPage";
 import ArmyProfilePage from "../pages/army/ArmyProfilePage";
+import AmbassadorProfilePage from "../pages/army/AmbassadorProfilePage";
 import ArmyHelpPage from "../pages/army/HelpSupportPage";
 
 // Admin
@@ -44,6 +48,9 @@ export default function AppRoutes() {
       {/* Auth */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/register/school" element={<SchoolSignupPage />} />
+      <Route path="/register/unit" element={<UnitSignupPage />} />
+      <Route path="/register/ambassador" element={<AmbassadorSignupPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
 
@@ -69,7 +76,7 @@ export default function AppRoutes() {
       <Route
         path="/army"
         element={
-          <ProtectedRoute allowedRoles={["army"]}>
+          <ProtectedRoute allowedRoles={["army-unit", "army-ambassador"]}>
             <ArmyLayout />
           </ProtectedRoute>
         }
@@ -77,6 +84,7 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<ArmyDashboardPage />} />
         <Route path="profile" element={<ArmyProfilePage />} />
+        <Route path="profile/ambassador" element={<AmbassadorProfilePage />} />
         <Route path="availability" element={<AvailabilityPage />} />
         <Route path="engagements" element={<ArmyMatchesPage />} />
         <Route path="help" element={<ArmyHelpPage />} />

@@ -1,0 +1,193 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import SignupLayout from "../../layouts/SignupLayout";
+import FormSection from "../../components/common/FormSection";
+import { Input, Select } from "../../components/common/Input";
+import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
+import VerifiedField from "../../components/common/VerifiedField";
+import Button from "../../components/common/Button";
+import { useForm } from "../../hooks/useForm";
+import {
+  MOBILITY_OPTIONS,
+  FORMATIONS,
+  SCHOOL_APPOINTMENTS,
+} from "../../data/options";
+
+export default function SchoolSignupPage() {
+  const navigate = useNavigate();
+
+  const { values, handleChange, setField } = useForm({
+    mobility: "",
+    fullName: "",
+    appointment: "",
+    email: "",
+    mobile: "",
+    schoolName: "",
+    address: "",
+    postalCode: "",
+    unitsPreferred: [],
+    password: "",
+    confirm: "",
+  });
+
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [mobileVerified, setMobileVerified] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!values.mobility) return setError("Choose an engagement type.");
+    if (!emailVerified) return setError("Verify your email before continuing.");
+    if (!mobileVerified) return setError("Verify your mobile number before continuing.");
+    if (values.password.length < 8) return setError("Password needs at least 8 characters.");
+    if (values.password !== values.confirm) return setError("Passwords don't match.");
+    if (values.unitsPreferred.length === 0) return setError("Pick at least one preferred formation.");
+
+    setError("");
+
+    // ── REAL (uncomment when the backend is ready) ────────────────────
+    // await registerSchool({ ...values, emailVerified, mobileVerified });
+
+    // ── DEMO ─────────────────────────────────────────────────────────
+    console.log("School signup", values);
+    navigate("/login");
+  };
+
+  return (
+    <SignupLayout
+      title="School account"
+      subtitle="Tell us about your school so we can match you with the right formations"
+    >
+      <form onSubmit={handleSubmit}>
+        <FormSection
+          step="1"
+          title="Engagement type"
+          description="What kind of engagement are you looking for? You can request a different type per booking later."
+        >
+          <RadioCards
+            name="mobility"
+            required
+            options={MOBILITY_OPTIONS}
+            value={values.mobility}
+            onChange={(v) => setField("mobility", v)}
+          />
+        </FormSection>
+
+        <FormSection step="2" title="Point of contact" description="Who should we deal with for bookings?">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+            <Input
+              label="Full name"
+              required
+              placeholder="e.g. Tan Gui Shan"
+              value={values.fullName}
+              onChange={handleChange("fullName")}
+            />
+            <Select
+              label="Appointment"
+              required
+              placeholder="Select your appointment"
+              options={SCHOOL_APPOINTMENTS}
+              value={values.appointment}
+              onChange={handleChange("appointment")}
+            />
+          </div>
+
+          <VerifiedField
+            channel="email"
+            type="email"
+            label="Email"
+            required
+            placeholder="you@school.edu.sg"
+            value={values.email}
+            onChange={handleChange("email")}
+            onVerifiedChange={setEmailVerified}
+          />
+
+          <VerifiedField
+            channel="mobile"
+            type="tel"
+            label="Mobile number"
+            required
+            placeholder="+65 9123 4567"
+            value={values.mobile}
+            onChange={handleChange("mobile")}
+            onVerifiedChange={setMobileVerified}
+          />
+        </FormSection>
+
+        <FormSection step="3" title="School details">
+          <Input
+            label="School name"
+            required
+            placeholder="e.g. Swiss Cottage Secondary School"
+            value={values.schoolName}
+            onChange={handleChange("schoolName")}
+          />
+          <Input
+            label="School address"
+            required
+            placeholder="e.g. 3 Bukit Batok Street 34"
+            value={values.address}
+            onChange={handleChange("address")}
+          />
+          <Input
+            label="Postal code"
+            required
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="659322"
+            value={values.postalCode}
+            onChange={handleChange("postalCode")}
+            className="max-w-[180px]"
+          />
+        </FormSection>
+
+        <FormSection
+          step="4"
+          title="Formations preferred"
+          description="Pick as many as you'd be interested in. We use this to suggest matches — it doesn't lock you in."
+        >
+          <MultiSelect
+            required
+            options={FORMATIONS}
+            value={values.unitsPreferred}
+            onChange={(v) => setField("unitsPreferred", v)}
+          />
+        </FormSection>
+
+        <FormSection step="5" title="Set a password">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+            <Input
+              label="Password"
+              required
+              type="password"
+              placeholder="Min. 8 characters"
+              value={values.password}
+              onChange={handleChange("password")}
+            />
+            <Input
+              label="Confirm password"
+              required
+              type="password"
+              placeholder="Re-enter password"
+              value={values.confirm}
+              onChange={handleChange("confirm")}
+            />
+          </div>
+        </FormSection>
+
+        {error && (
+          <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mb-5">
+            {error}
+          </div>
+        )}
+
+        <Button type="submit" fullWidth size="lg">Create school account</Button>
+        <p className="text-xs text-[#A8A29E] text-center mt-4">
+          Your account needs admin approval before you can book engagements.
+        </p>
+      </form>
+    </SignupLayout>
+  );
+}

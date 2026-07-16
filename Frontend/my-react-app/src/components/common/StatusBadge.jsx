@@ -11,6 +11,8 @@ const STYLES = {
   cancelled: "bg-[#FEE2E2] text-[#B91C1C]",
   review: "bg-[#EDE9FE] text-[#6D28D9]",
   withdraw: "bg-[#FEE2E2] text-[#B91C1C]",
+  withdrawn: "bg-[#F5F5F4] text-[#78716C]",
+  rejected: "bg-[#FEE2E2] text-[#B91C1C]",
   default: "bg-[#F5F5F4] text-[#57534E]",
 };
 

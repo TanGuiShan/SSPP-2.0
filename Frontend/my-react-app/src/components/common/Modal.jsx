@@ -14,7 +14,7 @@ export default function Modal({ open, onClose, title, subtitle, children, varian
   const isDrawer = variant === "drawer";
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className={`fixed inset-0 z-50 flex ${isDrawer ? "justify-end" : "items-center justify-center p-6"}`}>
       <div
         className="absolute inset-0 bg-[#1C1917]/40 animate-[fadeIn_.15s_ease-out]"
         onClick={onClose}

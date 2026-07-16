@@ -1,9 +1,13 @@
 import React from "react";
 import { CalendarIcon } from "../../assets/icons";
 import Button from "../common/Button";
+import { TOPICS, SCHOOL_LEVELS } from "../../data/options";
+import { formatRange } from "../../utils/filtering";
+
+const labelFor = (list, value) => list.find((o) => o.value === value)?.label ?? value;
 
 export default function FormationCard({ formation, onInterested }) {
-  const { name, location, availableFrom, availableTo, image, badge } = formation;
+  const { name, location, availableFrom, availableTo, image, badge, mobility, topics = [], levelsPreferred = [] } = formation;
 
   return (
     <div className="card overflow-hidden flex flex-col">
@@ -14,17 +18,47 @@ export default function FormationCard({ formation, onInterested }) {
             <img src={badge} alt="" className="w-full h-full object-cover" />
           </div>
         )}
+        {mobility && (
+          <span
+            className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-medium ${
+              mobility === "sharing_booth"
+                ? "bg-[#DBEAFE] text-[#1D4ED8]"
+                : "bg-white text-[#57534E]"
+            }`}
+          >
+            {mobility === "sharing_booth" ? "Sharing + booth" : "Sharing only"}
+          </span>
+        )}
       </div>
+
       <div className="p-5 flex flex-col flex-1">
         <h3 className="text-lg font-semibold text-[#1C1917]">{name}</h3>
-        <p className="text-sm text-[#78716C] mt-0.5">Location: {location}</p>
-        <div className="flex items-center gap-2 text-sm text-[#44403C] mt-3 mb-4">
-          <CalendarIcon width={16} height={16} className="text-[#A8A29E]" />
+        <p className="text-sm text-[#78716C] mt-0.5">{location}</p>
+
+        {topics.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {topics.slice(0, 3).map((t) => (
+              <span key={t} className="px-2.5 py-1 rounded-full bg-[#F5F5F4] text-[11px] text-[#44403C]">
+                {labelFor(TOPICS, t)}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 text-sm text-[#44403C] mt-3 mb-2">
+          <CalendarIcon width={16} height={16} className="text-[#A8A29E] shrink-0" />
           <div>
-            <p className="font-medium">Available From</p>
-            <p className="text-[#78716C]">{availableFrom} – {availableTo}</p>
+            <p className="font-medium text-xs">Available</p>
+            <p className="text-[#78716C] text-xs">{formatRange(availableFrom, availableTo)}</p>
           </div>
         </div>
+
+        {levelsPreferred.length > 0 && (
+          <p className="text-[11px] text-[#A8A29E] mb-4">
+            Prefers: {levelsPreferred.map((l) => labelFor(SCHOOL_LEVELS, l)).join(", ")}
+          </p>
+        )}
+
         <Button variant="primary" fullWidth className="mt-auto" onClick={() => onInterested?.(formation)}>
           I'm Interested
         </Button>

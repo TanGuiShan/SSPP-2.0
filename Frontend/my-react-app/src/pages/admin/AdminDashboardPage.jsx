@@ -1,6 +1,9 @@
 import React from "react";
 import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/common/StatCard";
+import { useEngagements } from "../../hooks/useEngagements";
+import { formations } from "../../data/formations";
+import { ambassadors } from "../../data/ambassadors";
 
 const monthly = [
   { month: "Jan", value: 3900 },
@@ -11,15 +14,25 @@ const monthly = [
   { month: "Jun", value: 0 },
 ];
 
-const statusBreakdown = [
-  { label: "Completed", count: 18, color: "#16A34A" },
-  { label: "Upcoming", count: 10, color: "#2563EB" },
-  { label: "Unmatched", count: 6, color: "#EAB308" },
-];
-
 export default function AdminDashboardPage() {
+  const { interestForms, matches } = useEngagements();
+
   const max = Math.max(...monthly.map((m) => m.value)) || 1;
-  const total = statusBreakdown.reduce((sum, s) => sum + s.count, 0);
+
+  // Live counts off the shared state — these move as forms get approved.
+  const pending = interestForms.filter((f) => f.status === "Pending").length;
+  const approved = matches.filter((m) => m.status === "Approved").length;
+  const cancelled = matches.filter((m) => m.status === "Cancelled").length;
+  const completionRate = interestForms.length
+    ? Math.round((approved / interestForms.length) * 100)
+    : 0;
+
+  const liveBreakdown = [
+    { label: "Approved", count: approved, color: "#16A34A" },
+    { label: "Pending", count: pending, color: "#EAB308" },
+    { label: "Cancelled", count: cancelled, color: "#DC2626" },
+  ];
+  const total = liveBreakdown.reduce((sum, s) => sum + s.count, 0) || 1;
 
   return (
     <>
@@ -35,11 +48,11 @@ export default function AdminDashboardPage() {
       />
 
       <div className="flex gap-4 flex-wrap mb-8">
-        <StatCard label="Total Schools" value="34" />
-        <StatCard label="Total Units" value="50" />
-        <StatCard label="Active Matches" value="20" valueColor="#2563EB" />
-        <StatCard label="Yet to Match" value="50" valueColor="#EA580C" />
-        <StatCard label="Completion Rate" value="85%" valueColor="#16A34A" />
+        <StatCard label="Total Units" value={formations.length} />
+        <StatCard label="Ambassadors" value={ambassadors.length} />
+        <StatCard label="Active Matches" value={approved} valueColor="#2563EB" />
+        <StatCard label="Yet to Match" value={pending} valueColor="#EA580C" />
+        <StatCard label="Completion Rate" value={`${completionRate}%`} valueColor="#16A34A" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -78,7 +91,7 @@ export default function AdminDashboardPage() {
             Status breakdown
           </h2>
 
-          {statusBreakdown.map((s) => (
+          {liveBreakdown.map((s) => (
             <div key={s.label} className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
@@ -89,7 +102,7 @@ export default function AdminDashboardPage() {
           ))}
 
           <div className="flex h-2 rounded-full overflow-hidden mt-5 gap-0.5">
-            {statusBreakdown.map((s) => (
+            {liveBreakdown.map((s) => (
               <div
                 key={s.label}
                 style={{ background: s.color, width: `${(s.count / total) * 100}%` }}
