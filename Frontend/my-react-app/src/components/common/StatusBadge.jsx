@@ -3,7 +3,9 @@ import React from "react";
 const STYLES = {
   completed: "bg-[#DCFCE7] text-[#15803D]",
   approved: "bg-[#DCFCE7] text-[#15803D]",
-  confirmed: "bg-[#DBEAFE] text-[#1D4ED8]",
+  "awaiting confirmation": "bg-[#FEF3C7] text-[#B45309]",
+  awaiting: "bg-[#FEF3C7] text-[#B45309]",
+  confirmed: "bg-[#DCFCE7] text-[#15803D]",
   upcoming: "bg-[#DBEAFE] text-[#1D4ED8]",
   pending: "bg-[#FEF3C7] text-[#B45309]",
   unmatched: "bg-[#FEF3C7] text-[#B45309]",

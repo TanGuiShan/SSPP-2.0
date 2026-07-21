@@ -7,6 +7,8 @@ import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
+import { accountTier } from "../../utils/domain";
+import { SKIP_DOMAIN_CHECK } from "../../config/testMode";
 import {
   MOBILITY_OPTIONS,
   FORMATIONS,
@@ -39,7 +41,7 @@ export default function UnitSignupPage() {
 
   // Tiers unlocked by the declared capability — shown so the user can see
   // what picking each mobility option actually means for them.
-  const unlockedTiers = values.mobility ? tiersFor("unit", values.mobility) : [];
+  const unlockedTiers = values.mobility ? tiersFor("unit", { mobility: values.mobility }) : [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -59,7 +61,12 @@ export default function UnitSignupPage() {
 
     // ── DEMO ─────────────────────────────────────────────────────────
     console.log("Unit signup", values);
-    navigate("/login");
+
+    // Gov domains (*.gov.sg / *.edu.sg) get in straight away. Volunteers from
+    // any other domain verify, then wait for admin approval.
+    // ── REAL: the backend decides this and refuses a session until approved.
+    const tier = SKIP_DOMAIN_CHECK ? "gov" : accountTier(values.email);
+    navigate(tier === "gov" ? "/login" : "/pending-approval");
   };
 
   return (

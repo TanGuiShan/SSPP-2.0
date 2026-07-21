@@ -2,6 +2,7 @@ import React from "react";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import TargetSummary from "../../components/common/TargetSummary";
+import EngagementRoster from "../../components/common/EngagementRoster";
 import Button from "../../components/common/Button";
 import Modal from "../../components/common/Modal";
 import { useModal } from "../../hooks/useModal";
@@ -40,8 +41,8 @@ export default function SchoolMatchesPage() {
     <>
       <PageHeader
         eyebrow="My Matches"
-        title="Approved and pending engagements"
-        subtitle="Once an admin approves a request, the confirmed engagement appears here"
+        title="Your engagements"
+        subtitle="Track who has confirmed for each engagement"
       />
 
       {matches.length === 0 ? (
@@ -106,11 +107,15 @@ export default function SchoolMatchesPage() {
               <DetailRow label="From request">{payload.formId}</DetailRow>
             )}
 
+            <div className="h-px bg-[#E7E5E4] my-6" />
+
+            <EngagementRoster match={payload} />
+
             <div className="flex gap-3 mt-8">
               <Button variant="secondary" fullWidth onClick={closeModal}>
                 Close
               </Button>
-              {payload.status === "Approved" && (
+              {payload.status === "Confirmed" && (
                 <Button variant="danger" fullWidth onClick={() => handleCancel(payload.id)}>
                   Cancel engagement
                 </Button>

@@ -79,7 +79,7 @@ export default function InterestFormsPage() {
                     <StatusBadge status={f.status} />
                   </td>
                   <td className="px-6 py-4 text-right align-top">
-                    {f.status === "Pending" ? (
+                    {f.status === "Awaiting confirmation" ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -129,13 +129,13 @@ export default function InterestFormsPage() {
             <DetailRow label="Size">{payload.participants} pax</DetailRow>
             {payload.notes && <DetailRow label="Notes">{payload.notes}</DetailRow>}
 
-            {payload.status === "Approved" && payload.matchId && (
+            {payload.status === "Confirmed" && payload.matchId && (
               <div className="rounded-lg bg-[#DCFCE7] text-[#15803D] px-4 py-3 text-sm mt-6">
-                Approved — see it under My Matches as {payload.matchId}.
+                Confirmed — see it under My Matches as {payload.matchId}.
               </div>
             )}
 
-            {payload.status === "Rejected" && payload.rejectionReason && (
+            {payload.status === "Cancelled" && payload.rejectionReason && (
               <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mt-6">
                 {payload.rejectionReason}
               </div>
@@ -145,7 +145,7 @@ export default function InterestFormsPage() {
               <Button variant="secondary" fullWidth onClick={closeModal}>
                 Close
               </Button>
-              {payload.status === "Pending" && (
+              {payload.status === "Awaiting confirmation" && (
                 <Button variant="danger" fullWidth onClick={() => handleWithdraw(payload.id)}>
                   Withdraw
                 </Button>

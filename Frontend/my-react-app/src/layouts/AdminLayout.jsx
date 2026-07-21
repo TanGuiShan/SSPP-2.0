@@ -15,9 +15,10 @@ import {
 const navItems = [
   { label: "Dashboard", to: "/admin/dashboard", icon: DashboardIcon },
   { label: "Manage Users", to: "/admin/users", icon: UsersIcon },
+  { label: "Schools", to: "/admin/schools", icon: UsersIcon },
   { label: "SSPP Approvals", to: "/admin/approvals", icon: ApprovalsIcon },
   { label: "Match Results", to: "/admin/matches", icon: MatchesIcon },
-  { label: "Logistics", to: "/admin/logistics", icon: LogisticsIcon },
+  { label: "Inventory", to: "/admin/logistics", icon: LogisticsIcon },
   { label: "Tier Config", to: "/admin/tiers", icon: TierIcon },
   { label: "Help & Support", to: "/admin/support", icon: HelpIcon },
 ];

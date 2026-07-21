@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Label } from "./Input";
 import Button from "./Button";
 import { sendCode, verifyCode } from "../../api/verifyApi";
+import { SKIP_VERIFICATION } from "../../config/testMode";
 
 /**
  * An input that has to be verified by a code before it counts as valid.
@@ -27,19 +28,29 @@ export default function VerifiedField({
   initiallyVerified = false,
 }) {
   // On a profile page the value arrives already verified; on signup it doesn't.
-  const [status, setStatus] = useState(initiallyVerified ? "verified" : "idle"); // idle | sent | verified
+  // In test mode, treat everything as verified so demos skip the code flow.
+  const [status, setStatus] = useState(
+    initiallyVerified || SKIP_VERIFICATION ? "verified" : "idle"
+  ); // idle | sent | verified
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // Tell the parent form we're already good, once, in test mode.
+  React.useEffect(() => {
+    if (SKIP_VERIFICATION) onVerifiedChange?.(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fieldBase =
     "w-full rounded-lg bg-[#F5F5F4] border border-transparent px-4 py-3 text-sm text-[#1C1917] " +
     "placeholder:text-[#A8A29E] focus:bg-white focus:border-[#1C1917] focus:outline-none transition-colors";
 
-  // Editing the address after verifying invalidates the verification.
+  // Editing the address after verifying invalidates the verification —
+  // except in test mode, where verification is bypassed entirely.
   const handleChange = (e) => {
     onChange(e);
-    if (status !== "idle") {
+    if (!SKIP_VERIFICATION && status !== "idle") {
       setStatus("idle");
       setCode("");
       setError("");

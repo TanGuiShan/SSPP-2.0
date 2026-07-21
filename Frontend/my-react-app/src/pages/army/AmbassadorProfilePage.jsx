@@ -10,7 +10,6 @@ import {
   SCHOOL_LEVELS,
   RANKS,
   TOPICS,
-  tiersFor,
 } from "../../data/options";
 
 export default function AmbassadorProfilePage() {
@@ -30,8 +29,9 @@ export default function AmbassadorProfilePage() {
 
   const [saved, setSaved] = useState(false);
   // Ambassadors cap at Tier 2 — Tier 3 needs a unit.
-  const unlockedTiers = values.mobility ? tiersFor("ambassador", values.mobility) : [];
-
+  // A solo ambassador can only do sharing-only (Tier 3). Booth (Tier 2) needs
+  // a team of 4+ — that's decided by the school when they assemble a team,
+  // not here. So we always show the solo capability on this page.
   const handleSave = () => {
     console.log("Saved ambassador profile", values);
     setSaved(true);
@@ -143,20 +143,22 @@ export default function AmbassadorProfilePage() {
           onChange={(v) => setField("mobility", v)}
         />
 
-        {unlockedTiers.length > 0 && (
-          <div className="rounded-lg bg-[#F5F5F4] p-4">
-            <p className="text-xs font-medium text-[#44403C] mb-2">
-              You'll show up for {unlockedTiers.length} tier{unlockedTiers.length > 1 ? "s" : ""}:
-            </p>
-            <ul className="space-y-1">
-              {unlockedTiers.map((t) => (
-                <li key={t.id} className="text-xs text-[#78716C]">
-                  <span className="text-[#1C1917] font-medium">{t.name}</span> — {t.description}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div className="rounded-lg bg-[#F5F5F4] p-4">
+          <p className="text-xs font-medium text-[#44403C] mb-2">How tiers work for you:</p>
+          <ul className="space-y-1">
+            <li className="text-xs text-[#78716C]">
+              <span className="text-[#1C1917] font-medium">On your own</span> — sharing-only
+              sessions (Tier 3).
+            </li>
+            <li className="text-xs text-[#78716C]">
+              <span className="text-[#1C1917] font-medium">In a team of 4 or more</span> — the
+              school can also book a booth setup (Tier 2).
+            </li>
+          </ul>
+          <p className="text-xs text-[#A8A29E] mt-2.5 pt-2.5 border-t border-[#E7E5E4]">
+            Tier 1 (hands-on) is units only.
+          </p>
+        </div>
       </div>
 
       <div className="card p-8">

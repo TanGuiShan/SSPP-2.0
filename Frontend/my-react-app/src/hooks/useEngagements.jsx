@@ -1,17 +1,26 @@
 // hooks/useEngagements.jsx
-// Shared state for the interest form → approval → match flow.
+// Shared state for the engagement flow.
 //
-// Everything the school submits, the admin approves, and both sides see lives
-// here. Persisted to localStorage so a refresh (or switching roles to check
-// the other side of the flow) doesn't wipe the demo.
+// FLOW (provider-confirm, no admin in the loop):
+//   1. School submits an interest form, having already chosen the provider
+//      (a unit, a single ambassador, or a team). The form is created together
+//      with a match in status "Awaiting confirmation".
+//   2. The provider confirms. A unit is one confirmation. An ambassador team
+//      is per-member: each ambassador confirms their own attendance.
+//   3. When every required party has confirmed, the match becomes "Confirmed".
+//   Providers cannot decline (government personnel don't pull out), so there's
+//   no reject path — confirm is a mandatory acknowledgement that also locks
+//   the date and, for units, triggers equipment reservation.
+//
+//   Admin is OUT of matching — they only monitor. (Out-of-domain signup
+//   approval is separate, handled elsewhere.)
 //
 // ── REAL ────────────────────────────────────────────────────────────────
-// Replace the reducer bodies with API calls when the backend lands. The shape
-// of the actions is deliberately close to what REST endpoints would be:
-//   submitInterest  -> POST /interest-forms
-//   withdrawInterest-> DELETE /interest-forms/:id
-//   approveInterest -> POST /interest-forms/:id/approve  (creates a match)
-//   rejectInterest  -> POST /interest-forms/:id/reject
+//   submitInterest       -> POST /interest-forms      (also creates the match)
+//   withdrawInterest     -> DELETE /interest-forms/:id
+//   confirmAsUnit        -> POST /matches/:id/confirm
+//   confirmAsAmbassador  -> POST /matches/:id/confirm  { ambassadorId }
+//   cancelMatch          -> POST /matches/:id/cancel
 // ────────────────────────────────────────────────────────────────────────
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -19,14 +28,13 @@ import { seedInterestForms, seedMatches } from "../data/seed";
 
 const EngagementContext = createContext(null);
 
-const STORAGE_KEY = "sspp.engagements";
+const STORAGE_KEY = "sspp.engagements.v2"; // bumped: shape changed for 4b
 
 function readStored() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    // Guard against a half-written or older-shaped blob
     if (!Array.isArray(parsed?.interestForms) || !Array.isArray(parsed?.matches)) return null;
     return parsed;
   } catch {
@@ -34,9 +42,6 @@ function readStored() {
   }
 }
 
-// Sequential, human-readable IDs — nicer in a demo than a uuid.
-// Only looks at the digits *after* the prefix, so a prefix containing numbers
-// ("AWEE-2026-") doesn't get swallowed into the counter.
 function nextId(prefix, existing) {
   const numbers = existing
     .filter((x) => String(x.id).startsWith(prefix))
@@ -44,6 +49,44 @@ function nextId(prefix, existing) {
     .filter((n) => !Number.isNaN(n));
   const max = numbers.length ? Math.max(...numbers) : 0;
   return `${prefix}${String(max + 1).padStart(3, "0")}`;
+}
+
+// Build the roster (who must confirm) from a target.
+function buildRoster(target) {
+  if (!target) return [];
+  if (target.kind === "team") {
+    return target.team.map((m) => ({
+      id: m.id,
+      kind: "ambassador",
+      name: m.name,
+      rank: m.rank,
+      appointment: m.appointment,
+      confirmed: false,
+      confirmedAt: null,
+    }));
+  }
+  if (target.kind === "ambassador") {
+    const a = target.ambassador;
+    return [
+      { id: a.id, kind: "ambassador", name: a.name, rank: a.rank, appointment: a.appointment, confirmed: false, confirmedAt: null },
+    ];
+  }
+  const u = target.unit;
+  return [{ id: u.id, kind: "unit", name: u.name, location: u.location, confirmed: false, confirmedAt: null }];
+}
+
+// A match is Confirmed once every roster member has confirmed.
+export function isFullyConfirmed(match) {
+  return match.roster?.length > 0 && match.roster.every((r) => r.confirmed);
+}
+
+export function confirmedCount(match) {
+  return match.roster?.filter((r) => r.confirmed).length ?? 0;
+}
+
+function withDerivedStatus(match) {
+  if (match.status === "Cancelled") return match;
+  return { ...match, status: isFullyConfirmed(match) ? "Confirmed" : "Awaiting confirmation" };
 }
 
 export function EngagementProvider({ children }) {
@@ -55,78 +98,97 @@ export function EngagementProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
-  /**
-   * School submits an interest form.
-   * @param {object} payload - { target, date, timings, tier, participants, notes }
-   *   `target` is either a unit, a single ambassador, or { team: [...] }.
-   */
   function submitInterest(payload) {
     setState((s) => {
+      const formId = nextId("IF", s.interestForms);
+      const matchId = nextId("AWEE-2026-", s.matches);
+      const roster = buildRoster(payload.target);
+
       const form = {
-        id: nextId("IF", s.interestForms),
+        id: formId,
+        matchId,
         submittedAt: new Date().toISOString(),
-        status: "Pending",
+        status: "Awaiting confirmation",
         ...payload,
       };
-      return { ...s, interestForms: [form, ...s.interestForms] };
-    });
-  }
 
-  function withdrawInterest(id) {
-    setState((s) => ({
-      ...s,
-      interestForms: s.interestForms.map((f) =>
-        f.id === id ? { ...f, status: "Withdrawn" } : f
-      ),
-    }));
-  }
-
-  /** Admin approves a form — this is what creates the match both sides see. */
-  function approveInterest(id) {
-    setState((s) => {
-      const form = s.interestForms.find((f) => f.id === id);
-      if (!form) return s;
-
-      const match = {
-        id: nextId("AWEE-2026-", s.matches),
-        formId: form.id,
-        school: form.school,
-        target: form.target,
-        date: form.date,
-        timings: form.timings,
-        tier: form.tier,
-        participants: form.participants,
-        notes: form.notes,
-        status: "Approved",
-        approvedAt: new Date().toISOString(),
-      };
+      const match = withDerivedStatus({
+        id: matchId,
+        formId,
+        school: payload.school,
+        target: payload.target,
+        date: payload.date,
+        timings: payload.timings,
+        tier: payload.tier,
+        participants: payload.participants,
+        notes: payload.notes,
+        roster,
+        equipment: [],
+        createdAt: new Date().toISOString(),
+      });
 
       return {
-        interestForms: s.interestForms.map((f) =>
-          f.id === id ? { ...f, status: "Approved", matchId: match.id } : f
-        ),
+        interestForms: [form, ...s.interestForms],
         matches: [match, ...s.matches],
       };
     });
   }
 
-  function rejectInterest(id, reason = "") {
-    setState((s) => ({
-      ...s,
-      interestForms: s.interestForms.map((f) =>
-        f.id === id ? { ...f, status: "Rejected", rejectionReason: reason } : f
-      ),
-    }));
+  function withdrawInterest(id) {
+    setState((s) => {
+      const form = s.interestForms.find((f) => f.id === id);
+      return {
+        interestForms: s.interestForms.map((f) =>
+          f.id === id ? { ...f, status: "Withdrawn" } : f
+        ),
+        matches: s.matches.map((m) =>
+          m.id === form?.matchId ? { ...m, status: "Cancelled" } : m
+        ),
+      };
+    });
+  }
+
+  function syncForm(forms, matchId, status) {
+    return forms.map((f) => (f.matchId === matchId ? { ...f, status } : f));
+  }
+
+  function confirmAsUnit(matchId, equipment = []) {
+    setState((s) => {
+      const matches = s.matches.map((m) => {
+        if (m.id !== matchId) return m;
+        const roster = m.roster.map((r) =>
+          r.kind === "unit" ? { ...r, confirmed: true, confirmedAt: new Date().toISOString() } : r
+        );
+        return withDerivedStatus({ ...m, roster, equipment });
+      });
+      const match = matches.find((m) => m.id === matchId);
+      return { matches, interestForms: syncForm(s.interestForms, matchId, match.status) };
+    });
+  }
+
+  function confirmAsAmbassador(matchId, ambassadorId) {
+    setState((s) => {
+      const matches = s.matches.map((m) => {
+        if (m.id !== matchId) return m;
+        const roster = m.roster.map((r) =>
+          r.id === ambassadorId ? { ...r, confirmed: true, confirmedAt: new Date().toISOString() } : r
+        );
+        return withDerivedStatus({ ...m, roster });
+      });
+      const match = matches.find((m) => m.id === matchId);
+      return { matches, interestForms: syncForm(s.interestForms, matchId, match.status) };
+    });
   }
 
   function cancelMatch(id) {
     setState((s) => ({
-      ...s,
       matches: s.matches.map((m) => (m.id === id ? { ...m, status: "Cancelled" } : m)),
+      interestForms: s.interestForms.map((f) =>
+        f.matchId === id ? { ...f, status: "Cancelled" } : f
+      ),
     }));
   }
 
-  /** Wipe everything back to the seed data — handy when demoing. */
   function resetDemo() {
     setState({ interestForms: seedInterestForms, matches: seedMatches });
   }
@@ -136,8 +198,8 @@ export function EngagementProvider({ children }) {
     matches: state.matches,
     submitInterest,
     withdrawInterest,
-    approveInterest,
-    rejectInterest,
+    confirmAsUnit,
+    confirmAsAmbassador,
     cancelMatch,
     resetDemo,
   };

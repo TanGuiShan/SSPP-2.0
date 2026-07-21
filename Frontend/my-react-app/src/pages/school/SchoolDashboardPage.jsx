@@ -14,8 +14,8 @@ export default function SchoolDashboardPage() {
   const navigate = useNavigate();
   const { interestForms, matches } = useEngagements();
 
-  const engaged = matches.filter((m) => m.status === "Approved").length;
-  const pending = interestForms.filter((f) => f.status === "Pending").length;
+  const engaged = matches.filter((m) => m.status === "Confirmed").length;
+  const pending = interestForms.filter((f) => f.status === "Awaiting confirmation").length;
 
   // Most recent activity across both lists, newest first
   const recent = [...interestForms]
@@ -33,7 +33,7 @@ export default function SchoolDashboardPage() {
       <div className="flex gap-4 flex-wrap mb-8">
         <StatCard label="Engaged" value={engaged} valueColor="#16A34A" />
         <StatCard label="Interest Forms" value={interestForms.length} />
-        <StatCard label="Pending Approval" value={pending} valueColor="#D97706" />
+        <StatCard label="Awaiting confirmation" value={pending} valueColor="#D97706" />
       </div>
 
       <div className="card p-6">

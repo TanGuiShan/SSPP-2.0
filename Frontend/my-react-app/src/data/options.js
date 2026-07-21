@@ -3,40 +3,48 @@
 // formation or topic only has to be added in one place.
 
 // ── Engagement tiers ──────────────────────────────────────────────────
-// Mobility is NOT a separate field: the tier implies it. Tier 1 is sharing
-// only; Tiers 2 and 3 both require booth setup at the school. `mobility`
-// below is derived metadata for display/filtering, not a user choice.
+// Tiers run most-intensive (T1) to least (T3):
+//   Tier 1 — hands-on: students handle real equipment. Needs a unit.
+//   Tier 2 — sharing + booth: static display brought to the school.
+//   Tier 3 — sharing only: talk/briefing, nothing moved on site.
+// `requiresBooth` = needs physical setup at the school (T1 and T2).
+// `isHandsOn`     = needs a unit's equipment + supervision (T1 only).
 export const TIERS = [
   {
     id: "tier1",
-    name: "Tier 1 — Sharing only",
-    short: "Sharing only",
-    description: "Classroom or hall session. Nothing moved off-camp.",
-    mobility: "sharing",
-    requiresBooth: false,
+    name: "Tier 1 — Hands-on experience",
+    short: "Hands-on",
+    description: "Students handle real equipment under supervision. Units only.",
+    requiresBooth: true,
+    isHandsOn: true,
   },
   {
     id: "tier2",
     name: "Tier 2 — Sharing + booth setup",
     short: "Sharing + booth",
-    description: "Static display. Vehicles and equipment brought to the school.",
-    mobility: "sharing_booth",
+    description: "Static display and equipment brought to the school.",
     requiresBooth: true,
+    isHandsOn: false,
   },
   {
     id: "tier3",
-    name: "Tier 3 — Hands-on experience",
-    short: "Hands-on",
-    description: "Students handle equipment under supervision. Includes booth setup.",
-    mobility: "sharing_booth",
-    requiresBooth: true,
+    name: "Tier 3 — Sharing only",
+    short: "Sharing only",
+    description: "Talk or briefing. Nothing moved off-camp.",
+    requiresBooth: false,
+    isHandsOn: false,
   },
 ];
 
 export const getTier = (id) => TIERS.find((t) => t.id === id);
 
-// What a unit/ambassador declares at signup: the most they can offer.
-// Tier 1 only => sharing. Tier 2/3 => they can do booth setup.
+// Tier ordering is by intensity, T1 highest. Used to compare "up to" ceilings.
+const TIER_ORDER = TIERS.map((t) => t.id); // ["tier1","tier2","tier3"]
+const tierRank = (id) => TIER_ORDER.indexOf(id); // lower index = more intensive
+
+// What a provider declares at signup: the most they can offer on site.
+//   sharing        => can do sharing-only (T3)
+//   sharing_booth  => can also bring a booth (T2), and if a unit, hands-on (T1)
 export const MOBILITY_OPTIONS = [
   {
     value: "sharing",
@@ -46,36 +54,47 @@ export const MOBILITY_OPTIONS = [
   {
     value: "sharing_booth",
     label: "Sharing + booth setup",
-    description: "Talks plus a static display or hands-on equipment on site.",
+    description: "Talks plus a static display or equipment on site.",
   },
 ];
 
-// Tiers available given a declared mobility capability.
-export const tiersForMobility = (mobility) =>
-  mobility === "sharing_booth" ? TIERS : TIERS.filter((t) => !t.requiresBooth);
-
-// ── Tier ceiling by provider type ─────────────────────────────────────
-// Tier 3 (hands-on) needs a unit's equipment and supervision, so it's a unit
-// capability, not an individual one. This holds for teams too — five
-// ambassadors together still aren't a unit.
-export const MAX_TIER_BY_PROVIDER = {
-  unit: "tier3",
-  ambassador: "tier2",
-};
-
-const TIER_ORDER = TIERS.map((t) => t.id);
+// ── Provider ceilings ─────────────────────────────────────────────────
+// Hands-on (T1) is units-only — ambassadors don't hold tanks or weapons, units
+// do. So an ambassador (or any ambassador team) tops out at Tier 2, and only
+// when the booth condition below is met; otherwise Tier 3.
+export const MIN_OFFICERS_FOR_BOOTH = 4; // rule B: 4+ ambassadors unlock booth
 
 /**
- * Tiers a provider can offer, given both what they can carry (mobility) and
- * what their provider type allows.
- *
- * @param {"unit"|"ambassador"} providerType
- * @param {"sharing"|"sharing_booth"} mobility
+ * Tiers a UNIT can offer, from its declared mobility.
+ * sharing_booth => T1, T2, T3.  sharing => T3 only.
  */
-export function tiersFor(providerType, mobility) {
-  const ceiling = MAX_TIER_BY_PROVIDER[providerType] ?? "tier3";
-  const maxIndex = TIER_ORDER.indexOf(ceiling);
-  return tiersForMobility(mobility).filter((t) => TIER_ORDER.indexOf(t.id) <= maxIndex);
+export function unitTiers(mobility) {
+  if (mobility === "sharing_booth") return TIERS;
+  return TIERS.filter((t) => !t.requiresBooth); // just T3
+}
+
+/**
+ * Tiers an AMBASSADOR context can offer. Never hands-on (T1).
+ *
+ * Rule B: booth (T2) needs at least MIN_OFFICERS_FOR_BOOTH ambassadors in the
+ * group, regardless of any individual's declared mobility. Fewer than that —
+ * including a lone ambassador — can only do sharing-only (T3).
+ *
+ * @param {number} groupSize - how many ambassadors are in the team (1 for solo)
+ */
+export function ambassadorTiers(groupSize = 1) {
+  const canBooth = groupSize >= MIN_OFFICERS_FOR_BOOTH;
+  return TIERS.filter((t) => !t.isHandsOn && (canBooth || !t.requiresBooth));
+}
+
+/**
+ * Single entry point the interest form uses.
+ * @param {"unit"|"ambassador"} providerType
+ * @param {{ mobility?: string, groupSize?: number }} opts
+ */
+export function tiersFor(providerType, opts = {}) {
+  if (providerType === "ambassador") return ambassadorTiers(opts.groupSize ?? 1);
+  return unitTiers(opts.mobility ?? "sharing_booth");
 }
 
 // ── Army formations ───────────────────────────────────────────────────
@@ -106,20 +125,15 @@ export const SCHOOL_LEVELS = [
 ];
 
 // ── Ranks ─────────────────────────────────────────────────────────────
+// Ambassadors are WO and above (lowest rank here is Warrant Officer), plus
+// the Military Expert track ME3–ME8.
 export const RANKS = [
-  { value: "3sg", label: "3SG — Third Sergeant" },
-  { value: "2sg", label: "2SG — Second Sergeant" },
-  { value: "1sg", label: "1SG — First Sergeant" },
-  { value: "ssg", label: "SSG — Staff Sergeant" },
-  { value: "msg", label: "MSG — Master Sergeant" },
   { value: "3wo", label: "3WO — Third Warrant Officer" },
   { value: "2wo", label: "2WO — Second Warrant Officer" },
   { value: "1wo", label: "1WO — First Warrant Officer" },
   { value: "mwo", label: "MWO — Master Warrant Officer" },
   { value: "swo", label: "SWO — Senior Warrant Officer" },
   { value: "cwo", label: "CWO — Chief Warrant Officer" },
-  { value: "me1", label: "ME1 — Military Expert 1" },
-  { value: "me2", label: "ME2 — Military Expert 2" },
   { value: "me3", label: "ME3 — Military Expert 3" },
   { value: "me4", label: "ME4 — Military Expert 4" },
   { value: "me5", label: "ME5 — Military Expert 5" },

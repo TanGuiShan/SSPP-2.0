@@ -15,6 +15,7 @@ import UnitSignupPage from "../pages/auth/UnitSignupPage";
 import AmbassadorSignupPage from "../pages/auth/AmbassadorSignupPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import VerifyEmailPage from "../pages/auth/VerifyEmailPage";
+import PendingApprovalPage from "../pages/auth/PendingApprovalPage";
 
 // School
 import SchoolDashboardPage from "../pages/school/SchoolDashboardPage";
@@ -35,6 +36,7 @@ import ArmyHelpPage from "../pages/army/HelpSupportPage";
 // Admin
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import UserManagementPage from "../pages/admin/UserManagementPage";
+import SchoolsPage from "../pages/admin/SchoolsPage";
 import MatchManagementPage from "../pages/admin/MatchManagementPage";
 import SupportQueriesPage from "../pages/admin/SupportQueriesPage";
 import LogisticsPage from "../pages/admin/LogisticsPage";
@@ -53,6 +55,7 @@ export default function AppRoutes() {
       <Route path="/register/ambassador" element={<AmbassadorSignupPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/pending-approval" element={<PendingApprovalPage />} />
 
       {/* School */}
       <Route
@@ -102,6 +105,7 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
         <Route path="users" element={<UserManagementPage />} />
+        <Route path="schools" element={<SchoolsPage />} />
         <Route path="approvals" element={<MatchManagementPage />} />
         <Route path="matches" element={<MatchManagementPage />} />
         <Route path="logistics" element={<LogisticsPage />} />

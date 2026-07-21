@@ -7,13 +7,14 @@ import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
+import { accountTier } from "../../utils/domain";
+import { SKIP_DOMAIN_CHECK } from "../../config/testMode";
 import {
   MOBILITY_OPTIONS,
   FORMATIONS,
   SCHOOL_LEVELS,
   RANKS,
   TOPICS,
-  tiersFor,
 } from "../../data/options";
 
 export default function AmbassadorSignupPage() {
@@ -38,7 +39,6 @@ export default function AmbassadorSignupPage() {
   const [error, setError] = useState("");
 
   // Ambassadors cap at Tier 2 — Tier 3 needs a unit.
-  const unlockedTiers = values.mobility ? tiersFor("ambassador", values.mobility) : [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -58,7 +58,12 @@ export default function AmbassadorSignupPage() {
 
     // ── DEMO ─────────────────────────────────────────────────────────
     console.log("Ambassador signup", values);
-    navigate("/login");
+
+    // Gov domains (*.gov.sg / *.edu.sg) get in straight away. Volunteers from
+    // any other domain verify, then wait for admin approval.
+    // ── REAL: the backend decides this and refuses a session until approved.
+    const tier = SKIP_DOMAIN_CHECK ? "gov" : accountTier(values.email);
+    navigate(tier === "gov" ? "/login" : "/pending-approval");
   };
 
   return (
@@ -80,23 +85,24 @@ export default function AmbassadorSignupPage() {
             onChange={(v) => setField("mobility", v)}
           />
 
-          {unlockedTiers.length > 0 && (
-            <div className="rounded-lg bg-[#F5F5F4] p-4 mt-1">
-              <p className="text-xs font-medium text-[#44403C] mb-2">
-                This unlocks {unlockedTiers.length} tier{unlockedTiers.length > 1 ? "s" : ""}:
-              </p>
-              <ul className="space-y-1">
-                {unlockedTiers.map((t) => (
-                  <li key={t.id} className="text-xs text-[#78716C]">
-                    <span className="text-[#1C1917] font-medium">{t.name}</span> — {t.description}
-                  </li>
-                ))}
-              </ul>
-              <p className="text-xs text-[#A8A29E] mt-2.5 pt-2.5 border-t border-[#E7E5E4]">
-                Tier 3 (hands-on) isn't available to ambassadors — it needs a unit's equipment and supervision.
-              </p>
-            </div>
-          )}
+          <div className="rounded-lg bg-[#F5F5F4] p-4 mt-1">
+            <p className="text-xs font-medium text-[#44403C] mb-2">
+              How tiers work for ambassadors:
+            </p>
+            <ul className="space-y-1">
+              <li className="text-xs text-[#78716C]">
+                <span className="text-[#1C1917] font-medium">On your own</span> — sharing-only
+                sessions (Tier 3).
+              </li>
+              <li className="text-xs text-[#78716C]">
+                <span className="text-[#1C1917] font-medium">In a team of 4 or more</span> — the
+                school can also book a booth setup (Tier 2).
+              </li>
+            </ul>
+            <p className="text-xs text-[#A8A29E] mt-2.5 pt-2.5 border-t border-[#E7E5E4]">
+              Tier 1 (hands-on) is units only — it needs a unit's equipment and supervision.
+            </p>
+          </div>
         </FormSection>
 
         <FormSection step="2" title="About you">
