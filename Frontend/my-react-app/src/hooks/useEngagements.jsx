@@ -26,6 +26,12 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { seedInterestForms, seedMatches } from "../data/seed";
+import {
+  seedFirestoreIfNeeded,
+  subscribeEngagements,
+  saveInterestFormAndMatch,
+  resetEngagementsFirestore,
+} from "../api/engagementsFirestore";
 
 const EngagementContext = createContext(null);
 
@@ -122,17 +128,42 @@ export function EngagementProvider({ children }) {
     () => readStored() ?? { interestForms: seedInterestForms, matches: seedMatches }
   );
 
+  const [isConnected, setIsConnected] = useState(false);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  useEffect(() => {
+    // Seed Firestore with initial demo data if database is currently empty
+    seedFirestoreIfNeeded(seedInterestForms, seedMatches);
+
+    // Subscribe to Firestore for live synchronization across users/sessions
+    const unsub = subscribeEngagements(
+      (remoteData) => {
+        setIsConnected(true);
+        if (remoteData.interestForms?.length || remoteData.matches?.length) {
+          setState(remoteData);
+        }
+      },
+      (err) => {
+        console.warn("Firestore listener warning:", err);
+      }
+    );
+
+    return () => unsub();
+  }, []);
+
   function submitInterest(payload) {
+    let createdForm = null;
+    let createdMatch = null;
+
     setState((s) => {
       const formId = nextId("IF", s.interestForms);
       const matchId = nextId("AWEE-2026-", s.matches);
       const roster = buildRoster(payload.target);
 
-      const form = {
+      createdForm = {
         id: formId,
         matchId,
         submittedAt: new Date().toISOString(),
@@ -140,7 +171,7 @@ export function EngagementProvider({ children }) {
         ...payload,
       };
 
-      const match = withDerivedStatus({
+      createdMatch = withDerivedStatus({
         id: matchId,
         formId,
         school: payload.school,
@@ -156,10 +187,14 @@ export function EngagementProvider({ children }) {
       });
 
       return {
-        interestForms: [form, ...s.interestForms],
-        matches: [match, ...s.matches],
+        interestForms: [createdForm, ...s.interestForms],
+        matches: [createdMatch, ...s.matches],
       };
     });
+
+    if (createdForm && createdMatch) {
+      saveInterestFormAndMatch(createdForm, createdMatch);
+    }
   }
 
   /**
@@ -170,11 +205,14 @@ export function EngagementProvider({ children }) {
    * volunteer (first-come). `category` limits who sees it.
    */
   function submitOpenRequest(payload) {
+    let createdForm = null;
+    let createdMatch = null;
+
     setState((s) => {
       const formId = nextId("IF", s.interestForms);
       const matchId = nextId("AWEE-2026-", s.matches);
 
-      const form = {
+      createdForm = {
         id: formId,
         matchId,
         submittedAt: new Date().toISOString(),
@@ -183,7 +221,7 @@ export function EngagementProvider({ children }) {
         ...payload,
       };
 
-      const match = withDerivedStatus({
+      createdMatch = withDerivedStatus({
         id: matchId,
         formId,
         school: payload.school,
@@ -202,10 +240,14 @@ export function EngagementProvider({ children }) {
       });
 
       return {
-        interestForms: [form, ...s.interestForms],
-        matches: [match, ...s.matches],
+        interestForms: [createdForm, ...s.interestForms],
+        matches: [createdMatch, ...s.matches],
       };
     });
+
+    if (createdForm && createdMatch) {
+      saveInterestFormAndMatch(createdForm, createdMatch);
+    }
   }
 
   /**
@@ -215,6 +257,9 @@ export function EngagementProvider({ children }) {
    * someone who already committed).
    */
   function updateOpenRequest(matchId, changes) {
+    let updatedMatch = null;
+    let updatedForm = null;
+
     setState((s) => {
       const matches = s.matches.map((m) => {
         if (m.id !== matchId || !m.isOpen) return m;
@@ -229,14 +274,18 @@ export function EngagementProvider({ children }) {
         return withDerivedStatus(next);
       });
 
-      const match = matches.find((m) => m.id === matchId);
-      return {
-        matches,
-        interestForms: s.interestForms.map((f) =>
-          f.matchId === matchId ? { ...f, ...changes, status: match.status } : f
-        ),
-      };
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = s.interestForms.map((f) =>
+        f.matchId === matchId ? { ...f, ...changes, status: updatedMatch?.status } : f
+      );
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+
+      return { matches, interestForms };
     });
+
+    if (updatedMatch || updatedForm) {
+      saveInterestFormAndMatch(updatedForm, updatedMatch);
+    }
   }
 
   /**
@@ -247,6 +296,9 @@ export function EngagementProvider({ children }) {
    * @param {object} provider - { id, kind, name, rank?, appointment?, location? }
    */
   function volunteerForRequest(matchId, provider) {
+    let updatedMatch = null;
+    let updatedForm = null;
+
     setState((s) => {
       const matches = s.matches.map((m) => {
         if (m.id !== matchId || !m.isOpen) return m;
@@ -271,9 +323,16 @@ export function EngagementProvider({ children }) {
         return withDerivedStatus({ ...m, roster, target });
       });
 
-      const match = matches.find((m) => m.id === matchId);
-      return { matches, interestForms: syncForm(s.interestForms, matchId, match.status) };
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = syncForm(s.interestForms, matchId, updatedMatch?.status);
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+
+      return { matches, interestForms };
     });
+
+    if (updatedMatch || updatedForm) {
+      saveInterestFormAndMatch(updatedForm, updatedMatch);
+    }
   }
 
   /**
@@ -286,17 +345,27 @@ export function EngagementProvider({ children }) {
   }
 
   function withdrawInterest(id) {
+    let updatedForm = null;
+    let updatedMatch = null;
+
     setState((s) => {
       const form = s.interestForms.find((f) => f.id === id);
-      return {
-        interestForms: s.interestForms.map((f) =>
-          f.id === id ? { ...f, status: "Withdrawn" } : f
-        ),
-        matches: s.matches.map((m) =>
-          m.id === form?.matchId ? { ...m, status: "Cancelled" } : m
-        ),
-      };
+      const interestForms = s.interestForms.map((f) =>
+        f.id === id ? { ...f, status: "Withdrawn" } : f
+      );
+      const matches = s.matches.map((m) =>
+        m.id === form?.matchId ? { ...m, status: "Cancelled" } : m
+      );
+
+      updatedForm = interestForms.find((f) => f.id === id);
+      updatedMatch = matches.find((m) => m.id === form?.matchId);
+
+      return { interestForms, matches };
     });
+
+    if (updatedForm || updatedMatch) {
+      saveInterestFormAndMatch(updatedForm, updatedMatch);
+    }
   }
 
   function syncForm(forms, matchId, status) {
@@ -304,6 +373,9 @@ export function EngagementProvider({ children }) {
   }
 
   function confirmAsUnit(matchId, equipment = []) {
+    let updatedMatch = null;
+    let updatedForm = null;
+
     setState((s) => {
       const matches = s.matches.map((m) => {
         if (m.id !== matchId) return m;
@@ -312,12 +384,22 @@ export function EngagementProvider({ children }) {
         );
         return withDerivedStatus({ ...m, roster, equipment });
       });
-      const match = matches.find((m) => m.id === matchId);
-      return { matches, interestForms: syncForm(s.interestForms, matchId, match.status) };
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = syncForm(s.interestForms, matchId, updatedMatch?.status);
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+
+      return { matches, interestForms };
     });
+
+    if (updatedMatch || updatedForm) {
+      saveInterestFormAndMatch(updatedForm, updatedMatch);
+    }
   }
 
   function confirmAsAmbassador(matchId, ambassadorId) {
+    let updatedMatch = null;
+    let updatedForm = null;
+
     setState((s) => {
       const matches = s.matches.map((m) => {
         if (m.id !== matchId) return m;
@@ -326,25 +408,46 @@ export function EngagementProvider({ children }) {
         );
         return withDerivedStatus({ ...m, roster });
       });
-      const match = matches.find((m) => m.id === matchId);
-      return { matches, interestForms: syncForm(s.interestForms, matchId, match.status) };
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = syncForm(s.interestForms, matchId, updatedMatch?.status);
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+
+      return { matches, interestForms };
     });
+
+    if (updatedMatch || updatedForm) {
+      saveInterestFormAndMatch(updatedForm, updatedMatch);
+    }
   }
 
   function cancelMatch(id) {
-    setState((s) => ({
-      matches: s.matches.map((m) => (m.id === id ? { ...m, status: "Cancelled" } : m)),
-      interestForms: s.interestForms.map((f) =>
+    let updatedMatch = null;
+    let updatedForm = null;
+
+    setState((s) => {
+      const matches = s.matches.map((m) => (m.id === id ? { ...m, status: "Cancelled" } : m));
+      const interestForms = s.interestForms.map((f) =>
         f.matchId === id ? { ...f, status: "Cancelled" } : f
-      ),
-    }));
+      );
+
+      updatedMatch = matches.find((m) => m.id === id);
+      updatedForm = interestForms.find((f) => f.matchId === id);
+
+      return { matches, interestForms };
+    });
+
+    if (updatedMatch || updatedForm) {
+      saveInterestFormAndMatch(updatedForm, updatedMatch);
+    }
   }
 
   function resetDemo() {
     setState({ interestForms: seedInterestForms, matches: seedMatches });
+    resetEngagementsFirestore(seedInterestForms, seedMatches);
   }
 
   const value = {
+    isConnected,
     interestForms: state.interestForms,
     matches: state.matches,
     submitInterest,

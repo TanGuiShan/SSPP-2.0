@@ -2,20 +2,16 @@ import SgdsSidebar from "@govtechsg/sgds-web-component/react/sidebar";
 import SgdsSidebarItem from "@govtechsg/sgds-web-component/react/sidebar-item";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LogoutIcon } from "../../assets/icons";
+import { useEngagements } from "../../hooks/useEngagements";
 
 /**
  * SGDS v3 application sidebar. Navigation still uses React Router, so moving
  * between pages remains client-side and does not refresh the application.
- *
- * NOTE on Logout: it must be an <SgdsSidebarItem>, not a plain <Button>.
- * SGDS collapses sidebar ITEMS automatically (hiding the title, keeping the
- * icon) when the sidebar is collapsed. A Button in the lower slot isn't a
- * sidebar item, so SGDS can't collapse it and the "Logout" label overflows
- * past the collapsed rail.
  */
 export default function Sidebar({ navItems, roleLabel, brand = "SSPP", onLogout, logo }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isConnected } = useEngagements();
   const activeItem = navItems.find((item) => location.pathname.startsWith(item.to));
 
   return (
@@ -35,6 +31,10 @@ export default function Sidebar({ navItems, roleLabel, brand = "SSPP", onLogout,
         <div className="sspp-sidebar-brand-copy">
           <strong>{brand}</strong>
           {roleLabel && <span>{roleLabel}</span>}
+          <div className="mt-1 flex items-center gap-1.5 text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium w-max border border-emerald-200">
+            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"}`} />
+            {isConnected ? "Firestore Live" : "Connecting..."}
+          </div>
         </div>
       </div>
 
