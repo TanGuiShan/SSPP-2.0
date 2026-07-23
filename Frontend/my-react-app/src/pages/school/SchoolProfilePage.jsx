@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import { Input, Select } from "../../components/common/Input";
 import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
@@ -73,7 +73,7 @@ export default function SchoolProfilePage() {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="max-w-2xl">
+      <form onSubmit={handleSave} className="max-w">
         <div className="card p-8 mb-5">
           <h2 className="text-lg font-semibold mb-6 pb-4 border-b border-[#E7E5E4]">
             School details
@@ -186,12 +186,15 @@ export default function SchoolProfilePage() {
         </Button>
       </form>
 
-      <div className="card p-8 mt-5 max-w-2xl border-[#F5C6C6]">
+      <div className="card p-8 mt-5 max-w border-[#F5C6C6]">
         <h2 className="text-lg font-semibold mb-1 text-[#B91C1C]">Delete account</h2>
         <p className="text-sm text-[#78716C] mb-5">
           Removes your school, its interest forms, and its match history. This can't be undone.
         </p>
-        <Button variant="danger" onClick={() => deleteModal.openModal()}>
+        <Button 
+          variant="danger" 
+          onClick={() => deleteModal.openModal()}
+        >
           Delete account
         </Button>
       </div>

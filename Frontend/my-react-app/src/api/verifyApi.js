@@ -7,7 +7,8 @@
 // out each DEMO block and uncomment the REAL block above it.
 // ─────────────────────────────────────────────────────────────────────
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
+// Uncomment when the REAL fetch blocks below are enabled:
+// const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
 // Any code entered in demo mode must match this to pass.
 export const DEMO_CODE = "123456";

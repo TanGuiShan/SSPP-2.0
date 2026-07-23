@@ -1,20 +1,24 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import TargetSummary from "../../components/common/TargetSummary";
+import EngagementRoster from "../../components/common/EngagementRoster";
 import Button from "../../components/common/Button";
 import Modal from "../../components/common/Modal";
-import { TextArea } from "../../components/common/Input";
 import { useModal } from "../../hooks/useModal";
 import { useEngagements } from "../../hooks/useEngagements";
 import { getTier, TIMING_SLOTS } from "../../data/options";
+import TabFilter from "../../components/common/TabFilter";
+import { TAB, tabsFor, applyTab, resolveTab, TAB_PARAM } from "../../utils/tabs";
+import DataTable from "../../components/common/DataTable";
 
 const timingLabel = (v) => TIMING_SLOTS.find((t) => t.value === v)?.label ?? v;
-
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
 
-const FILTERS = ["Pending", "Approved", "Rejected", "All"];
+// Shared tab definitions — same everywhere (see utils/tabs.js).
+const TABS = tabsFor([TAB.OPEN, TAB.AWAITING, TAB.CONFIRMED, TAB.CANCELLED, TAB.ALL]);
 
 function DetailRow({ label, children }) {
   return (
@@ -26,33 +30,32 @@ function DetailRow({ label, children }) {
 }
 
 export default function MatchManagementPage() {
-  const { interestForms, approveInterest, rejectInterest, resetDemo } = useEngagements();
+  const { matches, resetDemo } = useEngagements();
   const { open, payload, openModal, closeModal } = useModal();
-  const [filter, setFilter] = useState("Pending");
-  const [reason, setReason] = useState("");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(TAB.AWAITING);
 
-  const rows =
-    filter === "All" ? interestForms : interestForms.filter((f) => f.status === filter);
+  // Dashboard stat cards deep-link here, e.g. /admin/approvals?tab=confirmed
+  useEffect(() => {
+    setTab(resolveTab(searchParams.get(TAB_PARAM), TABS, TAB.AWAITING));
+  }, [searchParams]);
 
-  const pendingCount = interestForms.filter((f) => f.status === "Pending").length;
-
-  const handleApprove = (id) => {
-    approveInterest(id);
-    closeModal();
-  };
-
-  const handleReject = (id) => {
-    rejectInterest(id, reason.trim());
-    setReason("");
-    closeModal();
-  };
+  const activeTab = TABS.find((t) => t.key === tab) ?? TABS[0];
+  const rows = applyTab(matches, activeTab)
+    .slice()
+    .sort((a, b) => {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(a.date) - new Date(b.date);
+    });
+  const liveMatch = payload ? matches.find((m) => m.id === payload.id) ?? payload : null;
 
   return (
     <>
       <PageHeader
         eyebrow="Match Results"
-        title="Approve and match requests"
-        subtitle="Approving a request creates a confirmed match for both the school and the unit"
+        title="Engagement matches"
+        subtitle="Monitoring only — providers confirm their own engagements"
         action={
           <Button variant="ghost" size="sm" onClick={resetDemo}>
             Reset demo data
@@ -60,157 +63,96 @@ export default function MatchManagementPage() {
         }
       />
 
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              filter === f
-                ? "bg-[#1C1917] text-white font-medium"
-                : "bg-white border border-[#E7E5E4] text-[#44403C] hover:bg-[#F5F5F4]"
-            }`}
-          >
-            {f}
-            {f === "Pending" && pendingCount > 0 && (
-              <span
-                className={`ml-2 text-xs ${filter === f ? "text-white/60" : "text-[#A8A29E]"}`}
-              >
-                {pendingCount}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <TabFilter tabs={TABS} value={tab} onChange={setTab} items={matches} />
 
       <div className="card overflow-hidden">
         {rows.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-sm text-[#78716C]">
-              {filter === "Pending"
-                ? "Nothing waiting for approval."
-                : `No ${filter.toLowerCase()} requests.`}
-            </p>
+            <p className="text-sm text-[#78716C]">No engagements in this view.</p>
           </div>
         ) : (
+          <DataTable>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[#78716C] bg-[#FAFAF9] border-b border-[#E7E5E4]">
-                <th className="px-6 py-4 font-medium">Form ID</th>
+                <th className="px-6 py-4 font-medium">Code</th>
                 <th className="px-6 py-4 font-medium">School</th>
-                <th className="px-6 py-4 font-medium">Requested</th>
+                <th className="px-6 py-4 font-medium">Engaging</th>
                 <th className="px-6 py-4 font-medium">Date</th>
-                <th className="px-6 py-4 font-medium">Tier</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium text-right">Action</th>
+                <th className="px-6 py-4 font-medium">Confirmed</th>
+                <th className="px-6 py-4 font-medium text-right">Status</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((f) => (
-                <tr
-                  key={f.id}
-                  onClick={() => openModal(f)}
-                  className="border-b border-[#F5F5F4] last:border-0 hover:bg-[#FAFAF9] cursor-pointer transition-colors"
-                >
-                  <td className="px-6 py-4 text-[#78716C] align-top">{f.id}</td>
-                  <td className="px-6 py-4 font-medium align-top">{f.school}</td>
-                  <td className="px-6 py-4 align-top">
-                    <TargetSummary target={f.target} compact />
-                  </td>
-                  <td className="px-6 py-4 text-[#57534E] align-top">{fmtDate(f.date)}</td>
-                  <td className="px-6 py-4 text-[#57534E] align-top">
-                    {getTier(f.tier)?.short ?? f.tier}
-                  </td>
-                  <td className="px-6 py-4 align-top">
-                    <StatusBadge status={f.status} />
-                  </td>
-                  <td className="px-6 py-4 text-right align-top">
-                    {f.status === "Pending" ? (
-                      <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="outline" size="sm" onClick={() => openModal(f)}>
-                          Review
-                        </Button>
-                        <Button size="sm" onClick={() => approveInterest(f.id)}>
-                          Approve
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-[#A8A29E] text-xs">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {rows.map((m) => {
+                const done = m.roster?.filter((r) => r.confirmed).length ?? 0;
+                const total = m.roster?.length ?? 0;
+                return (
+                  <tr
+                    key={m.id}
+                    onClick={() => openModal(m)}
+                    className="border-b border-[#F5F5F4] last:border-0 hover:bg-[#FAFAF9] cursor-pointer transition-colors"
+                  >
+                    <td className="px-6 py-4 text-[#78716C] align-middle">{m.id}</td>
+                    <td className="px-6 py-4 font-medium align-middle">{m.school}</td>
+                    <td className="px-6 py-4 align-middle">
+                      <TargetSummary target={m.target} compact />
+                    </td>
+                    <td className="px-6 py-4 text-[#57534E] align-middle">{fmtDate(m.date)}</td>
+                    <td className="px-6 py-4 align-middle text-[#57534E]">
+                      {done}/{total}
+                    </td>
+                    <td className="px-6 py-4 text-right align-middle">
+                      <StatusBadge status={m.status} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+          </DataTable>
         )}
       </div>
 
       <Modal
         open={open}
         onClose={closeModal}
-        title="Review request"
-        subtitle={payload?.id}
+        title="Engagement details"
+        subtitle={liveMatch?.id}
         variant="drawer"
       >
-        {payload && (
+        {liveMatch && (
           <>
             <div className="flex justify-end mb-6">
-              <StatusBadge status={payload.status} />
+              <StatusBadge status={liveMatch.status} />
             </div>
 
-            <DetailRow label="School">{payload.school}</DetailRow>
+            <DetailRow label="School">{liveMatch.school}</DetailRow>
             <DetailRow label="Requested">
-              <TargetSummary target={payload.target} showRoster />
+              <TargetSummary target={liveMatch.target} />
             </DetailRow>
 
             <div className="h-px bg-[#E7E5E4] my-6" />
 
-            <DetailRow label="Preferred date">{fmtDate(payload.date)}</DetailRow>
-            <DetailRow label="Preferred timing">
-              {payload.timings?.map(timingLabel).join(", ") || "—"}
+            <DetailRow label="Date">{fmtDate(liveMatch.date)}</DetailRow>
+            <DetailRow label="Timing">
+              {liveMatch.timings?.map(timingLabel).join(", ") || "—"}
             </DetailRow>
             <DetailRow label="Engagement tier">
-              {getTier(payload.tier)?.name ?? payload.tier}
+              {getTier(liveMatch.tier)?.name ?? liveMatch.tier}
             </DetailRow>
-            <DetailRow label="Size">{payload.participants} pax</DetailRow>
-            {payload.notes && <DetailRow label="Notes">{payload.notes}</DetailRow>}
+            <DetailRow label="Size">{liveMatch.participants} pax</DetailRow>
+            {liveMatch.notes && <DetailRow label="Notes">{liveMatch.notes}</DetailRow>}
 
-            {payload.status === "Pending" && (
-              <>
-                <div className="h-px bg-[#E7E5E4] my-6" />
-                <TextArea
-                  label="Rejection reason"
-                  rows={3}
-                  placeholder="Only needed if you're rejecting — the school will see this."
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                />
-                <div className="flex gap-3">
-                  <Button
-                    variant="danger"
-                    fullWidth
-                    onClick={() => handleReject(payload.id)}
-                  >
-                    Reject
-                  </Button>
-                  <Button fullWidth onClick={() => handleApprove(payload.id)}>
-                    Approve &amp; create match
-                  </Button>
-                </div>
-              </>
-            )}
+            <div className="h-px bg-[#E7E5E4] my-6" />
 
-            {payload.status === "Approved" && payload.matchId && (
-              <div className="rounded-lg bg-[#DCFCE7] text-[#15803D] px-4 py-3 text-sm mt-2">
-                Approved — match {payload.matchId} created.
-              </div>
-            )}
+            <EngagementRoster match={liveMatch} />
 
-            {payload.status === "Rejected" && (
-              <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mt-2">
-                {payload.rejectionReason || "Rejected."}
-              </div>
-            )}
+            <div className="mt-8">
+              <Button variant="secondary" fullWidth onClick={closeModal}>
+                Close
+              </Button>
+            </div>
           </>
         )}
       </Modal>

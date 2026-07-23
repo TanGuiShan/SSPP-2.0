@@ -1,35 +1,32 @@
 :root {
-  /* Type */
-  --font-display: "DM Serif Display", Georgia, "Times New Roman", serif;
-  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Application aliases mapped to SGDS v3 design tokens. */
+  --font-display: var(--sgds-font-family-brand, "DM Sans", system-ui, sans-serif);
+  --font-body: var(--sgds-font-family-brand, "DM Sans", system-ui, sans-serif);
 
-  /* Surfaces */
-  --color-bg: #FAFAF9;
-  --color-surface: #FFFFFF;
-  --color-header-bg: #F0EFEA;
-  --color-sidebar-bg: #FCFCFB;
+  --color-bg: var(--sgds-bg-default, #f7f7f7);
+  --color-surface: var(--sgds-surface-default, #ffffff);
+  --color-header-bg: var(--sgds-bg-alternate, #f5f5f5);
+  --color-sidebar-bg: var(--sgds-surface-default, #ffffff);
 
-  /* Text */
-  --color-text: #1C1917;
-  --color-text-muted: #57534E;
-  --color-text-faint: #A8A29E;
+  --color-text: var(--sgds-color-default, #1a1a1a);
+  --color-text-muted: var(--sgds-color-subtle, #5f5f5f);
+  --color-text-faint: var(--sgds-color-muted, #767676);
 
-  /* Borders + shape */
-  --color-border: #E7E5E4;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.04), 0 1px 4px rgba(28, 25, 23, 0.06);
+  --color-border: var(--sgds-border-color-default, #d8d8d8);
+  --color-border-emphasis: var(--sgds-border-color-emphasis, #8c8c8c);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
 
-  /* Status */
-  --color-success: #16A34A;
-  --color-success-bg: #DCFCE7;
-  --color-warning: #B45309;
-  --color-warning-bg: #FEF3C7;
-  --color-danger: #B91C1C;
-  --color-danger-bg: #FEE2E2;
-  --color-info: #1D4ED8;
-  --color-info-bg: #DBEAFE;
-  --color-review: #6D28D9;
-  --color-review-bg: #EDE9FE;
+  --color-success: var(--sgds-success-color-default, #177245);
+  --color-success-bg: var(--sgds-success-bg-muted, #e8f5ee);
+  --color-warning: var(--sgds-warning-color-default, #8a4b00);
+  --color-warning-bg: var(--sgds-warning-bg-muted, #fff4dc);
+  --color-danger: var(--sgds-danger-color-default, #b42318);
+  --color-danger-bg: var(--sgds-danger-bg-muted, #feeceb);
+  --color-info: var(--sgds-primary-color-default, #2459a9);
+  --color-info-bg: var(--sgds-primary-bg-muted, #edf4ff);
+  --color-review: var(--sgds-purple-color-default, #7047a3);
+  --color-review-bg: var(--sgds-purple-bg-muted, #f3edfb);
 }

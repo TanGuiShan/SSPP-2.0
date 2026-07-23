@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SignupLayout from "../../layouts/SignupLayout";
 import FormSection from "../../components/common/FormSection";
@@ -7,6 +7,8 @@ import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
+import { accountTier } from "../../utils/domain";
+import { SKIP_DOMAIN_CHECK } from "../../config/testMode";
 import {
   MOBILITY_OPTIONS,
   FORMATIONS,
@@ -51,7 +53,12 @@ export default function SchoolSignupPage() {
 
     // ── DEMO ─────────────────────────────────────────────────────────
     console.log("School signup", values);
-    navigate("/login");
+
+    // Gov domains (*.gov.sg / *.edu.sg) get in straight away. Volunteers from
+    // any other domain verify, then wait for admin approval.
+    // ── REAL: the backend decides this and refuses a session until approved.
+    const tier = SKIP_DOMAIN_CHECK ? "gov" : accountTier(values.email);
+    navigate(tier === "gov" ? "/login" : "/pending-approval");
   };
 
   return (

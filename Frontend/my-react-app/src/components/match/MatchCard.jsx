@@ -1,10 +1,9 @@
-import React from "react";
 
 const ACTION_STYLES = {
   approved: "bg-[#DCFCE7] text-[#15803D]",
   pending: "bg-[#FEF3C7] text-[#B45309]",
   cancel: "bg-[#FEE2E2] text-[#B91C1C]",
-  review: "bg-[#EDE9FE] text-[#6D28D9]",
+  review: "bg-[#EDF4FF] text-[#2459A9]",
 };
 
 export default function MatchCard({ match, onAction }) {

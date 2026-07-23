@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import { Input, TextArea } from "../../components/common/Input";
 import Button from "../../components/common/Button";

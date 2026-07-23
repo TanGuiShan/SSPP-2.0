@@ -1,27 +1,28 @@
-import React from "react";
+import SgdsBadge from "@govtechsg/sgds-web-component/react/badge";
 
-const STYLES = {
-  completed: "bg-[#DCFCE7] text-[#15803D]",
-  approved: "bg-[#DCFCE7] text-[#15803D]",
-  confirmed: "bg-[#DBEAFE] text-[#1D4ED8]",
-  upcoming: "bg-[#DBEAFE] text-[#1D4ED8]",
-  pending: "bg-[#FEF3C7] text-[#B45309]",
-  unmatched: "bg-[#FEF3C7] text-[#B45309]",
-  cancel: "bg-[#FEE2E2] text-[#B91C1C]",
-  cancelled: "bg-[#FEE2E2] text-[#B91C1C]",
-  review: "bg-[#EDE9FE] text-[#6D28D9]",
-  withdraw: "bg-[#FEE2E2] text-[#B91C1C]",
-  withdrawn: "bg-[#F5F5F4] text-[#78716C]",
-  rejected: "bg-[#FEE2E2] text-[#B91C1C]",
-  default: "bg-[#F5F5F4] text-[#57534E]",
+const VARIANTS = {
+  completed: "success",
+  approved: "success",
+  "awaiting confirmation": "warning",
+  awaiting: "warning",
+  confirmed: "success",
+  upcoming: "primary",
+  pending: "warning",
+  unmatched: "warning",
+  cancel: "danger",
+  cancelled: "danger",
+  review: "info",
+  withdraw: "danger",
+  withdrawn: "neutral",
+  rejected: "danger",
+  default: "neutral",
 };
 
-export default function StatusBadge({ status, children }) {
-  const key = (status || "").toString().toLowerCase();
-  const style = STYLES[key] || STYLES.default;
+export default function StatusBadge({ status, children, outlined = false }) {
+  const key = String(status || "").toLowerCase();
   return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${style}`}>
+    <SgdsBadge variant={VARIANTS[key] ?? VARIANTS.default} outlined={outlined}>
       {children || status}
-    </span>
+    </SgdsBadge>
   );
 }

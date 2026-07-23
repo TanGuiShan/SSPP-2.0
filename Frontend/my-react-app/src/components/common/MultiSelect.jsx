@@ -1,79 +1,67 @@
-import React from "react";
+import SgdsCheckbox from "@govtechsg/sgds-web-component/react/checkbox";
+import SgdsRadio from "@govtechsg/sgds-web-component/react/radio";
+import SgdsRadioGroup from "@govtechsg/sgds-web-component/react/radio-group";
 import { Label } from "./Input";
 
-/**
- * Chip-style multi-select. Used for school levels preferred, topics, etc.
- * @param {{value: string, label: string}[]} options
- * @param {string[]} value - currently selected values
- * @param {(next: string[]) => void} onChange
- */
+/** Multi-value selection built from SGDS checkboxes. */
 export function MultiSelect({ label, required, options, value = [], onChange, hint }) {
-  const toggle = (v) =>
-    onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
+  const toggle = (optionValue) => {
+    onChange(
+      value.includes(optionValue)
+        ? value.filter((item) => item !== optionValue)
+        : [...value, optionValue],
+    );
+  };
 
   return (
-    <div className="mb-5">
+    <fieldset className="sgds-choice-field">
       {label && <Label required={required}>{label}</Label>}
-      {hint && <p className="text-xs text-[#78716C] -mt-1 mb-2">{hint}</p>}
-      <div className="flex flex-wrap gap-2">
-        {options.map((opt) => {
-          const active = value.includes(opt.value);
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => toggle(opt.value)}
-              aria-pressed={active}
-              className={`px-3.5 py-2 rounded-full text-xs border transition-colors ${
-                active
-                  ? "bg-[#1C1917] border-[#1C1917] text-white"
-                  : "bg-white border-[#E7E5E4] text-[#44403C] hover:border-[#A8A29E]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+      {hint && <p className="sgds-field-hint">{hint}</p>}
+      <div className="sgds-choice-grid">
+        {options.map((option) => (
+          <SgdsCheckbox
+            key={option.value}
+            value={option.value}
+            checked={value.includes(option.value)}
+            onSgdsChange={() => toggle(option.value)}
+          >
+            {option.label}
+          </SgdsCheckbox>
+        ))}
       </div>
-    </div>
+    </fieldset>
   );
 }
 
 /**
- * Bordered radio cards — for choices that need a description, like mobility.
- * @param {{value: string, label: string, description?: string}[]} options
+ * Single-value selection built from SGDS radio controls.
+ *
+ * IMPORTANT: SgdsRadioGroup finds its radios with queryAssignedElements(),
+ * which only sees DIRECT slotted children. Wrapping each <SgdsRadio> in a
+ * layout div hides them from the group, so selecting one never deselects the
+ * others (they all appear checked). Radios must therefore be direct children
+ * of the group — the card look is applied to the radio itself, and any
+ * description is rendered inside the radio.
  */
 export function RadioCards({ label, required, options, value, onChange, name }) {
   return (
-    <div className="mb-5">
-      {label && <Label required={required}>{label}</Label>}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {options.map((opt) => {
-          const active = value === opt.value;
-          return (
-            <label
-              key={opt.value}
-              className={`flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors ${
-                active ? "border-[#1C1917] bg-[#FAFAF9]" : "border-[#E7E5E4] hover:border-[#A8A29E]"
-              }`}
-            >
-              <input
-                type="radio"
-                name={name}
-                checked={active}
-                onChange={() => onChange(opt.value)}
-                className="mt-0.5 w-4 h-4 accent-[#1C1917] shrink-0"
-              />
-              <div>
-                <p className="text-sm font-medium text-[#1C1917]">{opt.label}</p>
-                {opt.description && (
-                  <p className="text-xs text-[#78716C] mt-0.5">{opt.description}</p>
-                )}
-              </div>
-            </label>
-          );
-        })}
-      </div>
+    <div className="sgds-choice-field sgds-radio-card-group">
+      <SgdsRadioGroup
+        label={label}
+        required={required}
+        name={name}
+        value={value ?? ""}
+        onSgdsChange={(event) => onChange(event.detail?.value ?? event.target.value)}
+      >
+        {options.map((option) => (
+          <SgdsRadio key={option.value} value={option.value} className="sgds-radio-card">
+            {option.label}
+            {option.description && (
+              <span className="sgds-radio-card-desc">{option.description}</span>
+            )}
+          </SgdsRadio>
+        ))}
+      </SgdsRadioGroup>
     </div>
   );
 }

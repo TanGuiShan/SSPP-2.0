@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import Button from "../../components/common/Button";
 import { ChevronLeft, ChevronRight } from "../../assets/icons";

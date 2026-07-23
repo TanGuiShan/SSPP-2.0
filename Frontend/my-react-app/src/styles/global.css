@@ -1,59 +1,92 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
 @import "tailwindcss";
+@import "@govtechsg/sgds-web-component/themes/day.css";
+@import "@govtechsg/sgds-web-component/themes/night.css";
+@import "@govtechsg/sgds-web-component/css/sgds.css";
 @import "./variables.css";
 
 @layer base {
-  * {
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
   }
 
-  html, body, #root {
-    height: 100%;
+  html {
+    min-width: 320px;
+    min-height: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body,
+  #root {
+    min-height: 100dvh;
   }
 
   body {
     margin: 0;
-    font-family: var(--font-body);
     color: var(--color-text);
     background: var(--color-bg);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  h1, h2, h3, h4 {
-    font-family: var(--font-display);
-    margin: 0;
-  }
-
-  p, span, label, input, textarea, button, select {
     font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p {
+    margin-top: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--sgds-heading-color-default, var(--color-text));
+    font-family: var(--font-display);
+  }
+
+  h1 {
+    font-size: clamp(1.875rem, 3vw, 2.5rem);
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    line-height: 1.3;
   }
 
   a {
-    color: inherit;
+    color: var(--sgds-link-color-default, inherit);
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
   }
 
   button {
-    font-family: var(--font-body);
     cursor: pointer;
   }
 
-  input:focus, textarea:focus, select:focus, button:focus-visible {
-    outline: 2px solid var(--color-text);
+  :focus-visible {
+    outline: 2px solid var(--sgds-primary-color-default, #2459a9);
     outline-offset: 2px;
-  }
-
-  ::placeholder {
-    color: var(--color-text-faint);
   }
 }
 
 @layer components {
   .eyebrow {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+    margin-bottom: 0.375rem;
+    color: var(--sgds-primary-color-default, var(--color-info));
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--color-success);
   }
 
   .card {
@@ -62,11 +95,1425 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-card);
   }
+
+  /* Full application frame */
+  .sspp-app-shell,
+  .sspp-public-shell {
+    min-height: 100dvh;
+    background: var(--color-bg);
+  }
+
+  .sspp-app-shell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sspp-app-frame {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .sspp-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    align-self: flex-start;
+    height: 100dvh;
+    flex: 0 0 auto;
+  }
+
+  .sspp-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.5rem 0.25rem;
+  }
+
+  .sspp-sidebar-logo,
+  .sspp-sidebar-mark {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 auto;
+    border-radius: 0.625rem;
+  }
+
+  .sspp-sidebar-logo {
+    object-fit: cover;
+  }
+
+  .sspp-sidebar-mark {
+    display: grid;
+    place-items: center;
+    color: var(--sgds-primary-color-fixed-light, #fff);
+    background: var(--sgds-primary-surface-emphasis, #2459a9);
+    font-weight: 800;
+  }
+
+  .sspp-sidebar-brand-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .sspp-sidebar-brand-copy strong {
+    color: var(--color-text);
+    font-size: 1rem;
+  }
+
+  .sspp-sidebar-brand-copy span {
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .sspp-sidebar-icon {
+    display: inline-grid;
+    place-items: center;
+  }
+
+  .sspp-app-content {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .sspp-main-content {
+    flex: 1;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+  }
+
+  .sspp-content-container {
+    width: min(100%, 76rem);
+    margin-inline: auto;
+  }
+
+  .sspp-test-banner {
+    position: relative;
+    z-index: 40;
+    padding: 0.5rem clamp(1rem, 3vw, 2rem);
+    background: var(--sgds-warning-bg-muted, #fff4dc);
+  }
+
+  /* Page headings */
+  .sspp-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .sspp-page-subtitle {
+    max-width: 48rem;
+    margin: 0.5rem 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+
+  .sspp-page-action {
+    flex: 0 0 auto;
+  }
+
+  /* SGDS form wrappers */
+  .sgds-field,
+  .sgds-choice-field {
+    min-width: 0;
+    margin-bottom: 1.25rem;
+  }
+
+  .sgds-field > sgds-input,
+  .sgds-field > sgds-textarea,
+  .sgds-field > sgds-select,
+  .sgds-field > sgds-datepicker {
+    display: block;
+    width: 100%;
+  }
+
+  .sgds-field-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--sgds-form-color-default, var(--color-text));
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .sgds-field-label span {
+    color: var(--color-danger);
+  }
+
+  .sgds-field-hint {
+    margin: -0.125rem 0 0.75rem;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+  }
+
+  .sgds-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.75rem 1rem;
+  }
+
+  .sgds-dialog-body {
+    min-width: 0;
+    padding-top: 0.5rem;
+  }
+
+  /* Cards and metrics */
+  .sspp-form-section {
+    display: block;
+    margin-bottom: 1.25rem;
+  }
+
+  .sspp-section-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .sspp-section-heading h2 {
+    margin: 0;
+  }
+
+  .sspp-section-heading p {
+    margin: 0.375rem 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .sspp-step-number {
+    display: grid;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 999px;
+    color: var(--sgds-primary-color-fixed-light, #fff);
+    background: var(--sgds-primary-surface-emphasis, #2459a9);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .sspp-stat-card {
+    display: block;
+    min-width: 10rem;
+    flex: 1;
+  }
+
+  .sspp-stat-card--clickable {
+    cursor: pointer;
+  }
+
+  .sspp-stat-card--clickable:hover {
+    transform: translateY(-1px);
+  }
+
+  .sspp-stat-card-content {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .sspp-stat-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .sspp-stat-card-heading p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .sspp-stat-card-content > strong {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--color-text);
+    font-size: 2rem;
+    line-height: 1.1;
+  }
+
+  .sspp-stat-card-hint {
+    display: block;
+    margin-top: 0.375rem;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+  }
+
+  /* Filters */
+  .sspp-filter-panel {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  .sspp-filter-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .sspp-filter-heading h2,
+  .sspp-filter-heading p {
+    margin: 0;
+  }
+
+  .sspp-filter-heading p {
+    margin-top: 0.25rem;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+  }
+
+  .sspp-filter-dates {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 18rem));
+    gap: 1rem;
+  }
+
+  .sspp-filter-groups {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .sspp-filter-groups fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .sspp-filter-groups legend {
+    margin-bottom: 0.75rem;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Auth and public pages */
+  .sspp-public-shell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sspp-auth-layout {
+    display: grid;
+    min-height: min(48rem, calc(100dvh - 6rem));
+    flex: 1;
+    grid-template-columns: minmax(20rem, 0.9fr) minmax(24rem, 1.1fr);
+    background: var(--color-surface);
+  }
+
+  .sspp-auth-visual {
+    position: relative;
+    min-height: 38rem;
+    overflow: hidden;
+    background: var(--sgds-bg-fixed-dark, #111);
+  }
+
+  .sspp-auth-visual > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .sspp-auth-visual::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: linear-gradient(180deg, transparent 25%, rgb(0 0 0 / 0.78));
+  }
+
+  .sspp-auth-visual-overlay {
+    position: absolute;
+    z-index: 1;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: clamp(2rem, 5vw, 4rem);
+    color: #fff;
+  }
+
+  .sspp-auth-kicker {
+    margin-bottom: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .sspp-auth-visual-overlay h1 {
+    max-width: 36rem;
+    margin: 0;
+    color: #fff;
+  }
+
+  .sspp-auth-panel {
+    display: grid;
+    place-items: center;
+    padding: clamp(2rem, 6vw, 5rem);
+  }
+
+  .sspp-auth-panel-inner {
+    width: min(100%, 28rem);
+  }
+
+  .sspp-signup-header {
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .sspp-signup-header-inner {
+    display: flex;
+    width: min(100% - 2rem, 52rem);
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-inline: auto;
+    padding-block: 1.25rem;
+  }
+
+  .sspp-signup-header-inner > div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sspp-signup-header-inner span {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+  }
+
+  .sspp-signup-header-inner a {
+    font-size: 0.875rem;
+  }
+
+  .sspp-signup-main {
+    width: min(100% - 2rem, 52rem);
+    flex: 1;
+    margin-inline: auto;
+    padding-block: clamp(2rem, 5vw, 3.5rem);
+  }
+
+  .sspp-signup-intro {
+    margin-bottom: 2rem;
+  }
+
+  .sspp-signup-intro > p:last-child {
+    max-width: 44rem;
+    margin: 0.625rem 0 0;
+    color: var(--color-text-muted);
+    line-height: 1.55;
+  }
+
+  /* Tables: sgds-table receives existing semantic table markup through slot. */
+  sgds-table,
+  sgds-footer,
+  sgds-masthead {
+    display: block;
+  }
+
+  sgds-table table {
+    width: 100%;
+  }
+
+  .sspp-table-shell {
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  /* Existing native controls that remain specialised (chips, upload helpers). */
+  .sspp-native-input {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+    color: var(--sgds-form-color-default, var(--color-text));
+    border: 1px solid var(--sgds-border-color-default, var(--color-border));
+    border-radius: var(--radius-sm);
+    background: var(--sgds-form-surface-default, #fff);
+  }
+
+  .sspp-native-input:hover {
+    border-color: var(--sgds-border-color-emphasis, var(--color-border-emphasis));
+  }
+
+  .sspp-native-input:focus {
+    outline: 2px solid var(--sgds-primary-color-default, #2459a9);
+    outline-offset: 1px;
+  }
+}
+
+@media (max-width: 900px) {
+  .sspp-auth-layout {
+    display: block;
+  }
+
+  .sspp-auth-visual {
+    display: none;
+  }
+
+  .sspp-auth-panel {
+    min-height: 38rem;
+    padding: 2rem 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .sspp-app-frame {
+    display: block;
+  }
+
+  .sspp-sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+  }
+
+  .sspp-main-content {
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .sspp-page-header,
+  .sspp-signup-header-inner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sspp-page-action > * {
+    width: 100%;
+  }
+
+  .sspp-filter-dates {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* Verification flow */
+.verified-field {
+  margin-bottom: 1.25rem;
+}
+
+.verified-field__main-row,
+.verified-field__code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.verified-field__input,
+.verified-field__code-input {
+  margin-bottom: 0;
+}
+
+.verified-field__code-row {
+  margin-top: 0.75rem;
+}
+
+.verified-field__code-input {
+  max-width: 18rem;
+}
+
+.verified-field__action {
+  padding-bottom: 0.125rem;
+}
+
+.verified-field__hint {
+  margin: 0.5rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.verified-field__alert {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+/* Route-level lazy-loading feedback */
+.route-loading {
+  min-height: 12rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+@media (max-width: 640px) {
+  .verified-field__main-row,
+  .verified-field__code-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .verified-field__action > * {
+    width: 100%;
+  }
+}
+
+/* Radios must be DIRECT children of sgds-radio-group (queryAssignedElements),
+   so the card styling is applied to the radio element itself rather than to a
+   wrapper div. The group lays them out in a responsive grid. */
+.sgds-radio-card-group sgds-radio-group::part(radio-container),
+.sgds-radio-card-group sgds-radio-group::part(base) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+}
+
+.sgds-radio-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 1rem;
+  display: block;
+}
+
+.sgds-radio-card-desc {
+  display: block;
+  margin-top: 0.375rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+/* When the sidebar is collapsed it becomes a narrow icon rail. The brand block
+   in the upper slot is our own markup (not an SGDS item), so SGDS can't
+   collapse it — hide the wording and centre the mark so it matches the
+   collapsed nav icons. */
+sgds-sidebar[collapsed] .sspp-sidebar-brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+sgds-sidebar[collapsed] .sspp-sidebar-brand-copy {
+  display: none;
+}
+
+/* ── Sign-up form helpers (CERT-aligned ambassador form) ─────────────── */
+
+/* Two-up field rows that collapse on narrow screens. */
+.sgds-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0 1.25rem;
+}
+
+/* Explanatory note under the mobility choice. */
+.sgds-radio-card-note {
+  margin: -0.25rem 0 1.25rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--sgds-primary-bg-muted, var(--color-info-bg));
+}
+
+.sgds-radio-card-note p {
+  margin: 0 0 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.sgds-radio-card-note p:last-child {
+  margin-bottom: 0;
+}
+
+.sgds-note-muted {
+  color: var(--color-text-muted);
+}
+
+/* Disclaimer block + consent checkbox row. */
+.sgds-disclaimer {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  margin-bottom: 1rem;
+}
+
+.sgds-disclaimer p {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+}
+
+.sgds-disclaimer ol {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.sgds-disclaimer li {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.sgds-consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.sgds-consent-row input[type="checkbox"] {
+  margin-top: 0.2rem;
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  accent-color: var(--sgds-primary-surface-default, #2459a9);
+}
+
+.sgds-required-mark {
+  color: var(--color-danger);
+}
+
+/* Inline form error + footnote. */
+.sgds-form-error {
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 0.875rem;
+}
+
+.sgds-form-footnote {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Dashboard layout helpers ────────────────────────────────────────── */
+
+.sspp-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Alert strip for "needs your action" items. */
+.sspp-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+}
+
+.sspp-alert--warning {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--sgds-warning-border-color-muted, #fcde63);
+}
+
+.sspp-alert-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-warning);
+}
+
+.sspp-alert-body {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.sspp-alert-action {
+  flex: none;
+  background: none;
+  border: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-warning);
+  cursor: pointer;
+}
+
+.sspp-alert-action:hover {
+  text-decoration: underline;
+}
+
+/* "Next engagement" highlight card. */
+.sspp-next-up {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.sspp-next-up-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.sspp-next-up-school {
+  margin: 0.375rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.sspp-next-up-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.sspp-next-up-countdown {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Generic dashboard panel. */
+.sspp-panel {
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.sspp-panel h2 {
+  font-size: 1.125rem;
+  margin: 0 0 1.25rem;
+}
+
+.sspp-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.sspp-panel-head h2 {
+  margin: 0;
+}
+
+.sspp-link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: var(--color-info);
+  cursor: pointer;
+}
+
+.sspp-link-button:hover {
+  text-decoration: underline;
+}
+
+.sspp-empty {
+  margin: 0;
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+/* Clickable row inside a panel. */
+.sspp-row-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.875rem 1rem;
+  margin-bottom: 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.sspp-row-button:last-child {
+  margin-bottom: 0;
+}
+
+.sspp-row-button:hover {
+  border-color: var(--color-border-emphasis);
+}
+
+.sspp-row-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.sspp-row-meta {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* Simple table styling inside dashboard panels. */
+.sspp-table-shell table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.sspp-table-shell th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 0 0.75rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sspp-table-shell td {
+  padding: 0.875rem 0.75rem;
+  border-bottom: 1px solid var(--sgds-border-color-muted, #eee);
+}
+
+.sspp-table-shell tr:last-child td {
+  border-bottom: 0;
+}
+
+.sspp-cell-strong {
+  font-weight: 600;
+}
+
+.sspp-cell-right {
+  text-align: right;
+}
+
+/* Make clickable stat cards visibly interactive (the base rule only lifts
+   them slightly; a border + shadow change reads much more clearly). */
+.sspp-stat-card--clickable {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.sspp-stat-card--clickable:hover {
+  border-color: var(--color-border-emphasis);
+  box-shadow: var(--sgds-elevation-surface-3, 0 4px 8px rgba(14, 14, 14, 0.08));
+}
+
+.sspp-stat-card--clickable:focus-visible {
+  outline: 2px solid var(--sgds-primary-color-default, #2459a9);
+  outline-offset: 2px;
+}
+
+/* The little arrow only shows on clickable cards. */
+.sspp-stat-card-heading span[aria-hidden="true"] {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+/* ── Filter tabs (status pills above a list) ─────────────────────────── */
+
+.sspp-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.sspp-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 0.875rem;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.sspp-filter-tab:hover {
+  border-color: var(--color-border-emphasis);
+}
+
+.sspp-filter-tab--active {
+  background: var(--sgds-primary-surface-default, #2459a9);
+  border-color: var(--sgds-primary-surface-default, #2459a9);
+  color: var(--sgds-primary-color-fixed-light, #fff);
+  font-weight: 600;
+}
+
+.sspp-filter-tab-count {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.sspp-filter-tab:focus-visible {
+  outline: 2px solid var(--sgds-primary-color-default, #2459a9);
+  outline-offset: 2px;
+}
+
+/* ── Open requests (school posts, providers volunteer) ───────────────── */
+
+.sspp-browse-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.sspp-browse-empty-title {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.sspp-browse-empty-body {
+  margin: 0 auto 1.25rem;
+  max-width: 32rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.sspp-open-requests {
+  border: 1px solid var(--sgds-primary-border-color-muted, #c8e2fb);
+  background: var(--color-info-bg);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.sspp-open-requests-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.sspp-open-requests-head p {
+  margin: 0.25rem 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.sspp-open-request {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.875rem 1rem;
+  margin-bottom: 0.625rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.sspp-open-request:last-child {
+  margin-bottom: 0;
+}
+
+.sspp-open-request-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.sspp-open-request-school {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.sspp-open-request-meta {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.sspp-open-request-notes {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.sspp-open-request-action {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: none;
+}
+
+.sspp-slots-left {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-info);
+  white-space: nowrap;
+}
+
+/* Modal helpers used by the open-request form. */
+.sgds-modal-intro {
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.sgds-form-eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.sgds-field-note {
+  margin: -0.75rem 0 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.sgds-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 1.5rem 0;
+}
+
+.sgds-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Admin escalation panel (open requests nobody took) ──────────────── */
+
+.sspp-escalation {
+  border: 1px solid var(--sgds-warning-border-color-muted, #fcde63);
+  background: var(--color-warning-bg);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.sspp-escalation-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-warning);
+}
+
+.sspp-escalation-head p {
+  margin: 0.25rem 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.sspp-escalation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.875rem 1rem;
+  margin-bottom: 0.625rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.sspp-escalation-row:last-child {
+  margin-bottom: 0;
+}
+
+.sspp-escalation-school {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.sspp-escalation-meta {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.sspp-assign-select {
+  flex: none;
+  min-width: 14rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 0.875rem;
+}
+
+/* ── Open request status + inline edit (school side) ─────────────────── */
+
+.sspp-open-status {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  background: var(--color-info-bg);
+  border: 1px solid var(--sgds-primary-border-color-muted, #c8e2fb);
+}
+
+.sspp-open-status-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-info);
+}
+
+.sspp-open-status-body {
+  margin: 0.25rem 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.sspp-open-edit {
+  margin-top: 0.5rem;
+}
+
+.sspp-open-edit-actions {
+  display: flex;
+  gap: 0.625rem;
+  margin-top: 0.25rem;
+}
+
+/* ── Collapsible filter panel ────────────────────────────────────────── */
+
+.sspp-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.sspp-filter-chevron {
+  flex: none;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  transition: transform 0.15s ease;
+}
+
+.sspp-filter-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.sspp-filter-heading-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.sspp-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sspp-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: var(--sgds-primary-surface-default, #2459a9);
+  color: var(--sgds-primary-color-fixed-light, #fff);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.sspp-filter-count {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.sspp-filter-toggle:focus-visible {
+  outline: 2px solid var(--sgds-primary-color-default, #2459a9);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── "Post a request" prompt ─────────────────────────────────────────── */
+
+.sspp-request-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--sgds-primary-border-color-muted, #c8e2fb);
+  background: var(--color-info-bg);
+}
+
+.sspp-request-prompt-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sspp-request-prompt-body {
+  margin: 0.375rem 0 0;
+  max-width: 40rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+/* ── Browse school requests (provider side) ──────────────────────────── */
+
+.sspp-request-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: 1.25rem;
+}
+
+.sspp-request-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+}
+
+.sspp-request-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.sspp-request-card-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.sspp-request-card-date {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.sspp-request-card-facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.875rem 0;
+  border-block: 1px solid var(--sgds-border-color-muted, #eee);
+}
+
+.sspp-request-card-facts div {
+  min-width: 0;
+}
+
+.sspp-request-card-facts dt {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.sspp-request-card-facts dd {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+}
+
+.sspp-request-card-notes {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.sspp-request-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.sspp-request-card-age {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.sspp-request-card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Pointer from My Engagements to the requests page. */
+.sspp-requests-pointer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.875rem 1.25rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--radius-md);
+  background: var(--color-info-bg);
+  border: 1px solid var(--sgds-primary-border-color-muted, #c8e2fb);
+}
+
+.sspp-requests-pointer-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.sspp-requests-pointer-body {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
 }

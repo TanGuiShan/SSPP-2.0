@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Modal from "../common/Modal";
 import { Input, TextArea, Select } from "../common/Input";
 import { MultiSelect } from "../common/MultiSelect";
 import Button from "../common/Button";
-import { TIMING_SLOTS, getTier, tiersFor } from "../../data/options";
+import { TIMING_SLOTS, getTier, tiersFor, MIN_OFFICERS_FOR_BOOTH } from "../../data/options";
 
 export default function InterestFormModal({ open, onClose, formation, onSubmit }) {
   const [form, setForm] = useState({
@@ -18,24 +18,22 @@ export default function InterestFormModal({ open, onClose, formation, onSubmit }
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   const isTeam = Boolean(formation?.isTeam);
+  const isAmbassador = isTeam || Boolean(formation?.isAmbassador);
 
-  // A team can only do booth setup if every member can.
-  const teamCanBooth = isTeam
-    ? formation.team.every((m) => m.mobility === "sharing_booth")
-    : false;
+  // Ambassadors: booth (Tier 2) is unlocked by team size (rule B), not by any
+  // individual's mobility. A solo ambassador is a group of 1 => Tier 3 only.
+  const groupSize = isTeam ? formation.team.length : 1;
 
-  // Only offer tiers the target can actually deliver.
-  const capability = isTeam
-    ? teamCanBooth
-      ? "sharing_booth"
-      : "sharing"
-    : formation?.mobility ?? "sharing_booth";
+  // Units: tiers come from what the unit declared it can carry.
+  const unitMobility = formation?.mobility ?? "sharing_booth";
 
-  // Ambassadors (individually or as a team) cap at Tier 2 — Tier 3 needs a
-  // unit's equipment and supervision. `providerType` drives that ceiling.
-  const providerType = isTeam || formation?.isAmbassador ? "ambassador" : "unit";
+  const availableTiers = isAmbassador
+    ? tiersFor("ambassador", { groupSize })
+    : tiersFor("unit", { mobility: unitMobility });
 
-  const availableTiers = tiersFor(providerType, capability);
+  // Does an ambassador team fall short of the booth threshold?
+  const teamBelowBoothThreshold =
+    isAmbassador && groupSize < MIN_OFFICERS_FOR_BOOTH;
 
   const selectedTier = form.tier ? getTier(form.tier) : null;
 
@@ -69,13 +67,20 @@ export default function InterestFormModal({ open, onClose, formation, onSubmit }
               </div>
             ))}
           </div>
-          {!teamCanBooth && (
+          {teamBelowBoothThreshold ? (
             <p className="text-xs text-[#B45309] mt-3">
-              Not everyone in this team can do booth setup, so only Tier 1 is available.
+              A booth setup (Tier 2) needs a team of {MIN_OFFICERS_FOR_BOOTH} or more. With{" "}
+              {groupSize}, only sharing-only (Tier 3) is available — add more ambassadors to unlock
+              the booth.
+            </p>
+          ) : (
+            <p className="text-xs text-[#78716C] mt-3">
+              With {groupSize} ambassadors, this team can do a booth setup (Tier 2) or sharing only
+              (Tier 3).
             </p>
           )}
-          <p className="text-xs text-[#78716C] mt-2">
-            Ambassador engagements go up to Tier 2. Tier 3 needs a unit.
+          <p className="text-xs text-[#A8A29E] mt-2">
+            Tier 1 (hands-on) is units only.
           </p>
         </div>
       ) : (
@@ -87,7 +92,8 @@ export default function InterestFormModal({ open, onClose, formation, onSubmit }
             <p className="text-sm text-[#78716C]">{formation.location ?? formation.camp}</p>
             {formation.isAmbassador && (
               <p className="text-xs text-[#78716C] mt-2">
-                Ambassador engagements go up to Tier 2. Tier 3 needs a unit.
+                On their own, an ambassador can do sharing-only (Tier 3). A booth (Tier 2) needs a
+                team of {MIN_OFFICERS_FOR_BOOTH}.
               </p>
             )}
           </div>

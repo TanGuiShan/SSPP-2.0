@@ -1,19 +1,25 @@
-import React from "react";
+import SgdsButton from "@govtechsg/sgds-web-component/react/button";
 
-const VARIANTS = {
-  primary: "bg-[#1C1917] text-white hover:bg-black",
-  secondary: "bg-[#F5F5F4] text-[#1C1917] hover:bg-[#E7E5E4]",
-  outline: "bg-transparent text-[#1C1917] border border-[#D6D3D1] hover:bg-[#F5F5F4]",
-  danger: "bg-[#C2542F] text-white hover:bg-[#A8431F]",
-  ghost: "bg-transparent text-[#78716C] hover:text-[#1C1917]",
+const VARIANT_MAP = {
+  primary: { variant: "primary", tone: "brand" },
+  secondary: { variant: "outline", tone: "brand" },
+  outline: { variant: "outline", tone: "neutral" },
+  danger: { variant: "primary", tone: "danger" },
+  ghost: { variant: "ghost", tone: "neutral" },
 };
 
-const SIZES = {
-  sm: "text-sm px-3 py-1.5",
-  md: "text-sm px-4 py-2.5",
-  lg: "text-base px-5 py-3",
+const SIZE_MAP = {
+  xs: "xs",
+  sm: "sm",
+  md: "md",
+  lg: "lg",
 };
 
+/**
+ * Compatibility wrapper around SGDS v3's button.
+ * Existing pages can keep using <Button variant="secondary" /> while the
+ * underlying control is now the official SGDS component.
+ */
 export default function Button({
   children,
   variant = "primary",
@@ -23,24 +29,25 @@ export default function Button({
   type = "button",
   onClick,
   className = "",
+  loading = false,
   ...rest
 }) {
+  const appearance = VARIANT_MAP[variant] ?? VARIANT_MAP.primary;
+
   return (
-    <button
+    <SgdsButton
+      {...rest}
       type={type}
       disabled={disabled}
+      loading={loading}
       onClick={onClick}
-      className={[
-        "rounded-lg font-medium transition-colors duration-150",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
-        VARIANTS[variant],
-        SIZES[size],
-        fullWidth ? "w-full" : "",
-        className,
-      ].join(" ")}
-      {...rest}
+      variant={appearance.variant}
+      tone={appearance.tone}
+      size={SIZE_MAP[size] ?? "md"}
+      fullWidth={fullWidth}
+      className={className}
     >
       {children}
-    </button>
+    </SgdsButton>
   );
 }

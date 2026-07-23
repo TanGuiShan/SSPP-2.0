@@ -68,7 +68,7 @@ export const ambassadors = [
     rank: "1SG",
     name: "Nurul Aisyah Binte Osman",
     appointment: "Medic Trainer",
-    formation: "army_medical",
+    formation: "medical",
     camp: "Nee Soon Camp",
     mobility: "sharing_booth",
     topics: ["vocation", "women_in_army", "fitness"],

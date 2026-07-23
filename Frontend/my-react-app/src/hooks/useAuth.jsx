@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // hooks/useAuth.jsx
 // Session/auth context shared across the whole app.
 //
@@ -6,7 +7,7 @@
 // route guards, profile pages and (later) the school's browse view can treat
 // them differently without a rewrite.
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext(null);
 
