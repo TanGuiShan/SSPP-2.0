@@ -1,16 +1,29 @@
-import React from "react";
+import SgdsMasthead from "@govtechsg/sgds-web-component/react/masthead";
 import posterImg from "../assets/images/services_posters.jpg";
+import GovernmentFooter from "../components/layout/GovernmentFooter";
+import TestModeBanner from "../components/layout/TestModeBanner";
 
 export default function AuthLayout({ children }) {
   return (
-    <div className="min-h-screen flex bg-white">
-      <div className="hidden lg:block lg:w-[38%] relative overflow-hidden">
-        <img src={posterImg} alt="" className="absolute inset-0 w-full h-full object-cover" />
-      </div>
+    <div className="sspp-public-shell">
+      <SgdsMasthead fluid />
+      <TestModeBanner />
 
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-sm">{children}</div>
-      </div>
+      <main className="sspp-auth-layout">
+        <div className="sspp-auth-visual" aria-hidden="true">
+          <img src={posterImg} alt="" />
+          <div className="sspp-auth-visual-overlay">
+            <p className="sspp-auth-kicker">SAF-School Partnership Programme</p>
+            <h1>Build meaningful connections through shared engagements.</h1>
+          </div>
+        </div>
+
+        <div className="sspp-auth-panel">
+          <div className="sspp-auth-panel-inner">{children}</div>
+        </div>
+      </main>
+
+      <GovernmentFooter />
     </div>
   );
 }

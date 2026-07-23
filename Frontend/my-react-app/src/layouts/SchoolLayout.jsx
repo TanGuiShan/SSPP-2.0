@@ -1,4 +1,3 @@
-import React from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useAuth } from "../hooks/useAuth";

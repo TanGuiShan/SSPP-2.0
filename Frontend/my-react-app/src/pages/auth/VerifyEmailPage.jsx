@@ -1,4 +1,4 @@
-import React from "react";
+import SgdsAlert from "@govtechsg/sgds-web-component/react/alert";
 import { Link } from "react-router-dom";
 import AuthLayout from "../../layouts/AuthLayout";
 import Button from "../../components/common/Button";
@@ -6,17 +6,26 @@ import Button from "../../components/common/Button";
 export default function VerifyEmailPage() {
   return (
     <AuthLayout>
-      <div className="text-center mb-8">
-        <h1 className="text-4xl" style={{ fontFamily: "var(--font-display)" }}>Check your email</h1>
-        <p className="text-sm text-[#78716C] mt-2">
-          We sent a verification link to your inbox. Open it to activate your account.
+      <div className="mb-8">
+        <p className="eyebrow">Email verification</p>
+        <h1>Check your email</h1>
+        <p className="sspp-page-subtitle">
+          Open the verification link we sent to activate your account.
         </p>
       </div>
 
-      <Button variant="secondary" fullWidth size="lg">Resend verification email</Button>
+      <SgdsAlert show variant="info" title="Verification required">
+        The verification link is time-limited. Request a new email if it has expired.
+      </SgdsAlert>
 
-      <div className="text-center mt-5">
-        <Link to="/login" className="text-sm text-[#44403C] underline">← Back to sign in</Link>
+      <div className="mt-5">
+        <Button variant="secondary" fullWidth size="lg">
+          Resend verification email
+        </Button>
+      </div>
+
+      <div className="mt-5 text-center">
+        <Link to="/login">← Back to sign in</Link>
       </div>
     </AuthLayout>
   );

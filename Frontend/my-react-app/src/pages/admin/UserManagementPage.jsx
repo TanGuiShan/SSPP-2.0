@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import Button from "../../components/common/Button";
 import { emailDomain } from "../../utils/domain";
+import DataTable from "../../components/common/DataTable";
 
 // Demo volunteer signups awaiting approval. In production these come from the
 // backend — accounts created from non-gov domains, held until an admin acts.
@@ -66,6 +67,7 @@ export default function UserManagementPage() {
             </p>
           </div>
         ) : (
+          <DataTable>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[#78716C] bg-[#FAFAF9] border-b border-[#E7E5E4]">
@@ -110,6 +112,7 @@ export default function UserManagementPage() {
               ))}
             </tbody>
           </table>
+          </DataTable>
         )}
       </div>
     </>

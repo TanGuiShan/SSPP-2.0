@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Modal from "../common/Modal";
 import { Input, TextArea, Select } from "../common/Input";
 import { MultiSelect } from "../common/MultiSelect";

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // hooks/useEngagements.jsx
 // Shared state for the engagement flow.
 //
@@ -23,7 +24,7 @@
 //   cancelMatch          -> POST /matches/:id/cancel
 // ────────────────────────────────────────────────────────────────────────
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { seedInterestForms, seedMatches } from "../data/seed";
 
 const EngagementContext = createContext(null);
@@ -86,7 +87,34 @@ export function confirmedCount(match) {
 
 function withDerivedStatus(match) {
   if (match.status === "Cancelled") return match;
+
+  // An OPEN request has no provider yet — the school asked for N volunteers
+  // and providers claim slots first-come. It stays "Open" until enough have
+  // volunteered, at which point it becomes a normal match and follows the
+  // usual Awaiting -> Confirmed flow.
+  if (match.isOpen) {
+    const filled = match.roster?.length ?? 0;
+    if (filled < (match.volunteersNeeded ?? 1)) {
+      return { ...match, status: "Open" };
+    }
+  }
+
   return { ...match, status: isFullyConfirmed(match) ? "Confirmed" : "Awaiting confirmation" };
+}
+
+/** Slots still to be filled on an open request. */
+export function slotsRemaining(match) {
+  if (!match?.isOpen) return 0;
+  return Math.max(0, (match.volunteersNeeded ?? 1) - (match.roster?.length ?? 0));
+}
+
+/** Has an open request sat unfilled long enough to need admin help? */
+export const OPEN_ESCALATION_DAYS = 7;
+
+export function isEscalated(match, days = OPEN_ESCALATION_DAYS) {
+  if (!match?.isOpen || match.status !== "Open") return false;
+  const created = new Date(match.createdAt).getTime();
+  return (Date.now() - created) / (24 * 60 * 60 * 1000) >= days;
 }
 
 export function EngagementProvider({ children }) {
@@ -132,6 +160,129 @@ export function EngagementProvider({ children }) {
         matches: [match, ...s.matches],
       };
     });
+  }
+
+  /**
+   * School submits an OPEN request — they couldn't find anyone suitable in
+   * Browse, so they describe what they need and let providers come to them.
+   *
+   * No provider is chosen, so the roster starts empty and fills as providers
+   * volunteer (first-come). `category` limits who sees it.
+   */
+  function submitOpenRequest(payload) {
+    setState((s) => {
+      const formId = nextId("IF", s.interestForms);
+      const matchId = nextId("AWEE-2026-", s.matches);
+
+      const form = {
+        id: formId,
+        matchId,
+        submittedAt: new Date().toISOString(),
+        status: "Open",
+        isOpen: true,
+        ...payload,
+      };
+
+      const match = withDerivedStatus({
+        id: matchId,
+        formId,
+        school: payload.school,
+        target: null,                 // nobody chosen yet
+        isOpen: true,
+        category: payload.category,   // unit | cert | individual_ambassador
+        volunteersNeeded: payload.volunteersNeeded ?? 1,
+        date: payload.date,
+        timings: payload.timings,
+        tier: payload.tier,
+        participants: payload.participants,
+        notes: payload.notes,
+        roster: [],
+        equipment: [],
+        createdAt: new Date().toISOString(),
+      });
+
+      return {
+        interestForms: [form, ...s.interestForms],
+        matches: [match, ...s.matches],
+      };
+    });
+  }
+
+  /**
+   * School edits an open request — e.g. widen the number of volunteers or
+   * change the size. Freely editable while nobody has volunteered; once
+   * someone has, the number needed can only go UP (you can't un-volunteer
+   * someone who already committed).
+   */
+  function updateOpenRequest(matchId, changes) {
+    setState((s) => {
+      const matches = s.matches.map((m) => {
+        if (m.id !== matchId || !m.isOpen) return m;
+
+        const filled = m.roster?.length ?? 0;
+        const next = { ...m, ...changes };
+
+        if (changes.volunteersNeeded != null) {
+          // Never allow the target to drop below people already committed.
+          next.volunteersNeeded = Math.max(changes.volunteersNeeded, filled);
+        }
+        return withDerivedStatus(next);
+      });
+
+      const match = matches.find((m) => m.id === matchId);
+      return {
+        matches,
+        interestForms: s.interestForms.map((f) =>
+          f.matchId === matchId ? { ...f, ...changes, status: match.status } : f
+        ),
+      };
+    });
+  }
+
+  /**
+   * A provider volunteers for an open request. First-come: they're added to
+   * the roster immediately. When the last slot fills, the match stops being
+   * open and enters the normal confirm flow.
+   *
+   * @param {object} provider - { id, kind, name, rank?, appointment?, location? }
+   */
+  function volunteerForRequest(matchId, provider) {
+    setState((s) => {
+      const matches = s.matches.map((m) => {
+        if (m.id !== matchId || !m.isOpen) return m;
+        if ((m.roster ?? []).some((r) => r.id === provider.id)) return m; // already in
+        if (slotsRemaining(m) === 0) return m;                            // full
+
+        const roster = [
+          ...(m.roster ?? []),
+          { ...provider, confirmed: false, confirmedAt: null, volunteered: true },
+        ];
+
+        // Once full, describeTarget needs a real target to render.
+        const stillOpen = roster.length < (m.volunteersNeeded ?? 1);
+        const target = stillOpen
+          ? null
+          : roster.length === 1 && roster[0].kind === "unit"
+          ? { kind: "unit", unit: { id: roster[0].id, name: roster[0].name, location: roster[0].location } }
+          : roster.length === 1
+          ? { kind: "ambassador", ambassador: { ...roster[0] } }
+          : { kind: "team", team: roster.map((r) => ({ ...r })) };
+
+        return withDerivedStatus({ ...m, roster, target });
+      });
+
+      const match = matches.find((m) => m.id === matchId);
+      return { matches, interestForms: syncForm(s.interestForms, matchId, match.status) };
+    });
+  }
+
+  /**
+   * Admin assigns a provider to an open request that nobody picked up.
+   * This is the escalation path — admin is otherwise out of matching, but
+   * steps in when a request has sat unfilled past OPEN_ESCALATION_DAYS.
+   */
+  function assignProvider(matchId, provider) {
+    volunteerForRequest(matchId, { ...provider, assignedByAdmin: true });
   }
 
   function withdrawInterest(id) {
@@ -197,6 +348,10 @@ export function EngagementProvider({ children }) {
     interestForms: state.interestForms,
     matches: state.matches,
     submitInterest,
+    submitOpenRequest,
+    updateOpenRequest,
+    volunteerForRequest,
+    assignProvider,
     withdrawInterest,
     confirmAsUnit,
     confirmAsAmbassador,

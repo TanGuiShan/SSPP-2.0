@@ -29,7 +29,7 @@ export function describeTarget(target) {
     return {
       kind: "ambassador",
       title: `${a.rank} ${a.name}`,
-      subtitle: `${a.appointment} · ${a.camp}`,
+      subtitle: [a.appointment, a.camp].filter(Boolean).join(" · "),
     };
   }
 
@@ -96,6 +96,73 @@ export const seedInterestForms = [
     participants: 60,
     notes: "Career talk for JC2 science stream.",
   },
+  {
+  id: "IF004",
+  matchId: "AWEE-2026-004",
+  submittedAt: "2026-07-21T09:30:00.000Z",
+  status: "Open",
+  isOpen: true,
+
+  school: "Anderson Secondary School",
+
+  // Open requests do not have a chosen provider yet.
+  target: null,
+
+  category: "unit",
+  volunteersNeeded: 1,
+
+  date: "2026-08-12",
+  timings: ["morning"],
+  tier: "tier1",
+  participants: 100,
+
+  notes:
+    "Looking for an Army unit to conduct a hands-on Total Defence engagement for Secondary 3 students. The school hall and parade square are available.",
+},
+
+{
+  id: "IF005",
+  matchId: "AWEE-2026-005",
+  submittedAt: "2026-07-18T11:15:00.000Z",
+  status: "Open",
+  isOpen: true,
+
+  school: "Admiralty Primary School",
+  target: null,
+
+  category: "cert",
+  volunteersNeeded: 4,
+
+  date: "2026-08-19",
+  timings: ["afternoon"],
+  tier: "tier2",
+  participants: 180,
+
+  notes:
+    "The school is looking for a CERT team to conduct an Army careers sharing and booth engagement for Primary 5 and Primary 6 students.",
+},
+
+{
+  id: "IF006",
+  matchId: "AWEE-2026-006",
+  submittedAt: "2026-07-22T08:45:00.000Z",
+  status: "Open",
+  isOpen: true,
+
+  school: "Nanyang Girls' High School",
+  target: null,
+
+  category: "individual_ambassador",
+  volunteersNeeded: 2,
+
+  date: "2026-09-03",
+  timings: ["morning", "afternoon"],
+  tier: "tier3",
+  participants: 70,
+
+  notes:
+    "Looking for two ambassadors to share about leadership, teamwork, and career opportunities in the Army.",
+}
 ];
 
 export const seedMatches = [
@@ -163,4 +230,99 @@ export const seedMatches = [
     equipment: [],
     createdAt: "2026-07-12T08:40:00.000Z",
   },
+  {
+  id: "AWEE-2026-004",
+  formId: "IF004",
+
+  school: "Anderson Secondary School",
+
+  target: null,
+  isOpen: true,
+  category: "unit",
+  volunteersNeeded: 1,
+
+  date: "2026-08-12",
+  timings: ["morning"],
+  tier: "tier1",
+  participants: 100,
+
+  notes:
+    "Looking for an Army unit to conduct a hands-on Total Defence engagement for Secondary 3 students. The school hall and parade square are available.",
+
+  status: "Open",
+
+  // Nobody has volunteered yet.
+  roster: [],
+
+  equipment: [],
+  createdAt: "2026-07-21T09:30:00.000Z",
+},
+
+{
+  id: "AWEE-2026-005",
+  formId: "IF005",
+
+  school: "Admiralty Primary School",
+
+  target: null,
+  isOpen: true,
+  category: "cert",
+  volunteersNeeded: 4,
+
+  date: "2026-08-19",
+  timings: ["afternoon"],
+  tier: "tier2",
+  participants: 180,
+
+  notes:
+    "The school is looking for a CERT team to conduct an Army careers sharing and booth engagement for Primary 5 and Primary 6 students.",
+
+  status: "Open",
+
+  /*
+   * One ambassador has already volunteered.
+   * The request remains Open because it needs four ambassadors.
+   */
+  roster: [
+    {
+      id: "amb-seed-005",
+      kind: "ambassador",
+      rank: "CPT",
+      name: "Daniel Wong",
+      appointment: "Career Engagement Officer",
+      confirmed: false,
+      confirmedAt: null,
+      volunteered: true,
+    },
+  ],
+
+  equipment: [],
+  createdAt: "2026-07-18T11:15:00.000Z",
+},
+
+{
+  id: "AWEE-2026-006",
+  formId: "IF006",
+
+  school: "Nanyang Girls' High School",
+
+  target: null,
+  isOpen: true,
+  category: "individual_ambassador",
+  volunteersNeeded: 2,
+
+  date: "2026-09-03",
+  timings: ["morning", "afternoon"],
+  tier: "tier3",
+  participants: 70,
+
+  notes:
+    "Looking for two ambassadors to share about leadership, teamwork, and career opportunities in the Army.",
+
+  status: "Open",
+  roster: [],
+
+  equipment: [],
+  createdAt: "2026-07-22T08:45:00.000Z",
+},
 ];

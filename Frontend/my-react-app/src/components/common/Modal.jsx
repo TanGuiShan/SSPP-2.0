@@ -1,52 +1,73 @@
-import React, { useEffect } from "react";
-import { CloseIcon } from "../../assets/icons";
+import { useEffect, useRef } from "react";
+import SgdsDrawer from "@govtechsg/sgds-web-component/react/drawer";
+import SgdsModal from "@govtechsg/sgds-web-component/react/modal";
 
-export default function Modal({ open, onClose, title, subtitle, children, variant = "drawer" }) {
+/**
+ * Shared SGDS modal/drawer wrapper. Public API unchanged so existing pages
+ * keep working: <Modal open={...} onClose={...} variant="drawer|centered" />.
+ *
+ * Two things this has to get right:
+ *
+ * 1. OPENING. React 19 passes `open` to a custom element as a property, and
+ *    SGDS's dialog doesn't reliably open from that prop change alone. So we
+ *    drive it through the element's own show()/hide() methods via a ref,
+ *    which is what the SGDS docs recommend.
+ *
+ * 2. CLOSING. Only `sgds-request-close` means "the user tried to dismiss
+ *    this" (close button, overlay click, or Escape — it carries a `source`).
+ *    `sgds-after-hide` is just an animation-finished lifecycle event and
+ *    fires while the dialog settles its initial state; wiring onClose to it
+ *    makes a freshly opened drawer immediately close itself. So we listen to
+ *    request-close ONLY.
+ */
+export default function Modal({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  variant = "drawer",
+  size,
+}) {
+  const ref = useRef(null);
+
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => e.key === "Escape" && onClose?.();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    const el = ref.current;
+    if (!el) return;
 
-  if (!open) return null;
+    if (open) {
+      if (typeof el.show === "function") el.show();
+      else el.setAttribute("open", "");
+    } else {
+      if (typeof el.hide === "function") el.hide();
+      else el.removeAttribute("open");
+    }
+  }, [open]);
 
-  const isDrawer = variant === "drawer";
+  const handleRequestClose = () => onClose?.();
+
+  const commonProps = { ref, size: size ?? "md" };
+
+  if (variant === "drawer") {
+    return (
+      <SgdsDrawer
+        {...commonProps}
+        placement="end"
+        ariaLabel={title || "Dialog"}
+        onSgdsRequestClose={handleRequestClose}
+      >
+        {title && <span slot="title">{title}</span>}
+        {subtitle && <span slot="description">{subtitle}</span>}
+        <div className="sgds-dialog-body">{children}</div>
+      </SgdsDrawer>
+    );
+  }
 
   return (
-    <div className={`fixed inset-0 z-50 flex ${isDrawer ? "justify-end" : "items-center justify-center p-6"}`}>
-      <div
-        className="absolute inset-0 bg-[#1C1917]/40 animate-[fadeIn_.15s_ease-out]"
-        onClick={onClose}
-      />
-      <div
-        className={
-          isDrawer
-            ? "relative h-full w-full max-w-md bg-white shadow-2xl overflow-y-auto animate-[slideIn_.2s_ease-out]"
-            : "relative m-auto max-w-lg w-full bg-white rounded-2xl shadow-2xl p-8"
-        }
-      >
-        <div className={isDrawer ? "p-8" : ""}>
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              {title && <h2 className="text-3xl" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>}
-              {subtitle && <p className="text-sm text-[#78716C] mt-1">{subtitle}</p>}
-            </div>
-            <button
-              onClick={onClose}
-              aria-label="Close"
-              className="text-[#78716C] hover:text-[#1C1917] transition-colors"
-            >
-              <CloseIcon width={22} height={22} />
-            </button>
-          </div>
-          {children}
-        </div>
-      </div>
-      <style>{`
-        @keyframes slideIn { from { transform: translateX(24px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
-        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-      `}</style>
-    </div>
+    <SgdsModal {...commonProps} onSgdsClose={handleRequestClose}>
+      {title && <span slot="title">{title}</span>}
+      {subtitle && <span slot="description">{subtitle}</span>}
+      <div className="sgds-dialog-body">{children}</div>
+    </SgdsModal>
   );
 }

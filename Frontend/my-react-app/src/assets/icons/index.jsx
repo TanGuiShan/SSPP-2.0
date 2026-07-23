@@ -1,6 +1,5 @@
 // Minimal stroke-icon set (24x24, currentColor) used across the app.
 // Avoids a hard dependency on an icon library — swap for lucide-react etc. if you have it installed.
-import React from "react";
 
 const base = {
   width: 20,

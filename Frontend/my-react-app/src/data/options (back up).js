@@ -1,0 +1,568 @@
+// Shared option lists used across signup, profiles, and the interest form.
+// Keep these as the single source of truth — importing from here means a new
+// formation or topic only has to be added in one place.
+
+// ── Engagement tiers ──────────────────────────────────────────────────
+// Tiers run most-intensive (T1) to least (T3):
+//   Tier 1 — hands-on: students handle real equipment. Needs a unit.
+//   Tier 2 — sharing + booth: static display brought to the school.
+//   Tier 3 — sharing only: talk/briefing, nothing moved on site.
+// `requiresBooth` = needs physical setup at the school (T1 and T2).
+// `isHandsOn`     = needs a unit's equipment + supervision (T1 only).
+export const TIERS = [
+  {
+    id: "tier1",
+    name: "Tier 1 — Hands-on experience",
+    short: "Hands-on",
+    description: "Students handle real equipment under supervision. Units only.",
+    requiresBooth: true,
+    isHandsOn: true,
+  },
+  {
+    id: "tier2",
+    name: "Tier 2 — Sharing + booth setup",
+    short: "Sharing + booth",
+    description: "Static display and equipment brought to the school.",
+    requiresBooth: true,
+    isHandsOn: false,
+  },
+  {
+    id: "tier3",
+    name: "Tier 3 — Sharing only",
+    short: "Sharing only",
+    description: "Talk or briefing. Nothing moved off-camp.",
+    requiresBooth: false,
+    isHandsOn: false,
+  },
+];
+
+export const getTier = (id) => TIERS.find((t) => t.id === id);
+
+// What a provider declares at signup: the most they can offer on site.
+//   sharing        => can do sharing-only (T3)
+//   sharing_booth  => can also bring a booth (T2), and if a unit, hands-on (T1)
+export const MOBILITY_OPTIONS = [
+  {
+    value: "sharing",
+    label: "Sharing only",
+    description: "Talks and briefings. No equipment brought to the school.",
+  },
+  {
+    value: "sharing_booth",
+    label: "Sharing + booth setup",
+    description: "Talks plus a static display or equipment on site.",
+  },
+];
+
+// ── Provider ceilings ─────────────────────────────────────────────────
+// Hands-on (T1) is units-only — ambassadors don't hold tanks or weapons, units
+// do. So an ambassador (or any ambassador team) tops out at Tier 2, and only
+// when the booth condition below is met; otherwise Tier 3.
+export const MIN_OFFICERS_FOR_BOOTH = 4; // rule B: 4+ ambassadors unlock booth
+
+/**
+ * Tiers a UNIT can offer, from its declared mobility.
+ * sharing_booth => T1, T2, T3.  sharing => T3 only.
+ */
+export function unitTiers(mobility) {
+  if (mobility === "sharing_booth") return TIERS;
+  return TIERS.filter((t) => !t.requiresBooth); // just T3
+}
+
+/**
+ * Tiers an AMBASSADOR context can offer. Never hands-on (T1).
+ *
+ * Rule B: booth (T2) needs at least MIN_OFFICERS_FOR_BOOTH ambassadors in the
+ * group, regardless of any individual's declared mobility. Fewer than that —
+ * including a lone ambassador — can only do sharing-only (T3).
+ *
+ * @param {number} groupSize - how many ambassadors are in the team (1 for solo)
+ */
+export function ambassadorTiers(groupSize = 1) {
+  const canBooth = groupSize >= MIN_OFFICERS_FOR_BOOTH;
+  return TIERS.filter((t) => !t.isHandsOn && (canBooth || !t.requiresBooth));
+}
+
+/**
+ * Single entry point the interest form uses.
+ * @param {"unit"|"ambassador"} providerType
+ * @param {{ mobility?: string, groupSize?: number }} opts
+ */
+export function tiersFor(providerType, opts = {}) {
+  if (providerType === "ambassador") return ambassadorTiers(opts.groupSize ?? 1);
+  return unitTiers(opts.mobility ?? "sharing_booth");
+}
+
+// ── Army formations ───────────────────────────────────────────────────
+export const FORMATIONS = [
+  { value: "adminstration", label: "Administration" },
+  { value: "armoured", label: "Armoured" },
+  { value: "army_engineer_ammo", label: "Army Engineer Ammunition" },
+  { value: "army_engineer", label: "Army Engineer" },
+  { value: "army_intelligence", label: "Army Intelligence" },
+  { value: "artillery", label: "Artillery" },
+  { value: "combat_engineers", label: "Combat Engineers" },
+  { value: "commandos", label: "Commandos" },
+  { value: "guards", label: "Guards" },
+  { value: "infantry", label: "Infantry" },
+  { value: "maintenance_engineering", label: "Maintenance and Engineering Support" },
+  { value: "medical", label: "Medical" },
+  { value: "military_police", label: "Military Police" },
+  { value: "signal", label: "Signal" },
+  { value: "supply", label: "Supply" },
+  { value: "transport", label: "Transport" },
+];
+
+// ── School levels ─────────────────────────────────────────────────────
+export const SCHOOL_LEVELS = [
+  { value: "kindergarten", label: "Kindergarten" },
+  { value: "primary", label: "Primary" },
+  { value: "secondary", label: "Secondary" },
+  // { value: "jc", label: "Junior College" },
+  // { value: "poly", label: "Polytechnic" },
+  // { value: "ite", label: "ITE" },
+];
+
+// ── Ranks ─────────────────────────────────────────────────────────────
+// Ambassadors are WO and above (lowest rank here is Warrant Officer), plus
+// the Military Expert track ME3–ME8.
+export const RANKS = [
+  // Enlisted ranks (PTE–CFC) are for privates and corporals in the SAF and MINDEF.
+  { value: "pte", label: "Pte — Private" },
+  { value: "lcp", label: "Lcp — Lance Corporal" },
+  { value: "cpl", label: "Cpl — Corporal" },
+  { value: "cfc", label: "CFC — Corporal First Class" },
+
+  // Specialist ranks (SCT–CWO) are for specialists in the SAF and MINDEF.
+  { value: "sct", label: "SCT — Specialist" },
+  { value: "3sgt", label: "3SG — Third Sergeant" },
+  { value: "2sgt", label: "2SG — Second Sergeant" },
+  { value: "1sgt", label: "1SG — First Sergeant" },
+  { value: "ssg", label: "SSG — Staff Sergeant" },
+  { value: "msg", label: "MSG — Master Sergeant" },
+  { value: "3wo", label: "3WO — Third Warrant Officer" },
+  { value: "2wo", label: "2WO — Second Warrant Officer" },
+  { value: "1wo", label: "1WO — First Warrant Officer" },
+  { value: "mwo", label: "MWO — Master Warrant Officer" },
+  { value: "swo", label: "SWO — Senior Warrant Officer" },
+  { value: "cwo", label: "CWO — Chief Warrant Officer" },
+
+  // Military Expert ranks (ME1–ME8) are for specialists in the SAF and MINDEF.
+  { value: "me1", label: "ME1 — Military Expert 1" },
+  { value: "me2", label: "ME2 — Military Expert 2" },
+  { value: "me3", label: "ME3 — Military Expert 3" },
+  { value: "me4", label: "ME4 — Military Expert 4" },
+  { value: "me5", label: "ME5 — Military Expert 5" },
+  { value: "me6", label: "ME6 — Military Expert 6" },
+  { value: "me7", label: "ME7 — Military Expert 7" },
+  { value: "me8", label: "ME8 — Military Expert 8" },
+
+  // Officer ranks (OCT–LTG) are for commissioned officers in the SAF and MINDEF.
+  { value: "oct", label: "OCT — Officer Cadet" },
+  { value: "2lt", label: "2LT — Second Lieutenant" },
+  { value: "lta", label: "LTA — Lieutenant" },
+  { value: "cpt", label: "CPT — Captain" },
+  { value: "maj", label: "MAJ — Major" },
+  { value: "ltc", label: "LTC — Lieutenant Colonel" },
+  { value: "sltc", label: "SLTC — Senior Lieutenant Colonel" },
+  { value: "col", label: "COL — Colonel" },
+  { value: "bg", label: "BG — Brigadier-General" },
+  { value: "mg", label: "MG — Major-General" },
+  { value: "ltg", label: "LTG — Lieutenant-General" },
+
+  // Defence Executive ranks (DX1–DX18) are for senior officers in the SAF and MINDEF.
+  { value: "dx1", label: "DX1 — Defence Executive 1" },
+  { value: "dx2", label: "DX2 — Defence Executive 2" },
+  { value: "dx3", label: "DX3 — Defence Executive 3" },
+  { value: "dx4-5", label: "DX4-5 — Defence Executive 4-5" },
+  { value: "dx6-7", label: "DX6-7 — Defence Executive 6-7" },
+  { value: "dx8", label: "DX8 — Defence Executive 8" },
+  { value: "dx9-11", label: "DX9-11 — Defence Executive 9-11" },
+  { value: "dx12-13", label: "DX12-13 — Defence Executive 12-13" },
+  { value: "dx14-15", label: "DX14-15 — Defence Executive 14-15" },
+  { value: "dx16", label: "DX16 — Defence Executive 16" },
+  { value: "dx17", label: "DX17 — Defence Executive 17" },
+  { value: "dx18", label: "DX18 — Defence Executive 18" },
+];
+
+// ── Topics an ambassador / unit can speak on ──────────────────────────
+export const TOPICS = [
+  { value: "nsf_life", label: "NSF life and experience" },
+  { value: "career_army", label: "Army careers and pathways" },
+  { value: "leadership", label: "Leadership and teamwork" },
+  { value: "total_defence", label: "Total Defence" },
+  { value: "technology", label: "Defence technology and innovation" },
+  { value: "fitness", label: "Fitness and resilience" },
+  { value: "vocation", label: "Vocation-specific sharing" },
+  { value: "women_in_army", label: "Women in the Army" },
+];
+
+// ── School appointments (point of contact roles) ──────────────────────
+export const SCHOOL_APPOINTMENTS = [
+  { value: "principal", label: "Principal" },
+  { value: "vice_principal", label: "Vice Principal" },
+  { value: "hod", label: "Head of Department" },
+  { value: "teacher", label: "Teacher" },
+  { value: "cca_coordinator", label: "CCA Coordinator" },
+  { value: "careers_coordinator", label: "Careers Coordinator" },
+  { value: "admin", label: "Administrative Staff" },
+  { value: "other", label: "Other" },
+];
+
+// ── Preferred timing slots ────────────────────────────────────────────
+export const TIMING_SLOTS = [
+  { value: "morning", label: "Morning (0900–1200h)" },
+  { value: "afternoon", label: "Afternoon (1400–1700h)" },
+  { value: "full_day", label: "Full day" },
+];
+
+export const SERVICE_SCHEME = [
+  { value: "active(Regular)", label: "Active(Regular)" },
+  { value: "active(DXO)", label: "Active(DXO)" },
+  { value: "nsf", label: "NSF" },
+  { value: "nsmen", label: "NSmen" },
+  { value: "nsalumni", label: "NS Alumni" },
+];
+
+export const MOBILITY_OF_ENGAGEMENT = [
+  { value: "community_engagement_roving_team_(cert)", label: "Community Engagement Roving Team (CERT)" },
+  { value: "individual_ambassador", label: "Individual Ambassador" },
+  { value: "no_preference", label: "No preference" },
+];
+
+export const PRIMARY_SCHOOLS = [
+  { value: "Admiralty Primary School", label: "Admiralty Primary School" },
+  { value: "Ahmad Ibrahim Primary School", label: "Ahmad Ibrahim Primary School" },
+  { value: "Ai Tong School", label: "Ai Tong School" },
+  { value: "Alexandra Primary School", label: "Alexandra Primary School" },
+  { value: "Anchor Green Primary School", label: "Anchor Green Primary School" },
+  { value: "Anderson Primary School", label: "Anderson Primary School" },
+  { value: "Ang Mo Kio Primary School", label: "Ang Mo Kio Primary School" },
+  { value: "Anglo-Chinese School (Junior)", label: "Anglo-Chinese School (Junior)" },
+  { value: "Anglo-Chinese School (Primary)", label: "Anglo-Chinese School (Primary)" },
+  { value: "Angsana Primary School", label: "Angsana Primary School" },
+  { value: "Beacon Primary School", label: "Beacon Primary School" },
+  { value: "Bedok Green Primary School", label: "Bedok Green Primary School" },
+  { value: "Bendemeer Primary School", label: "Bendemeer Primary School" },
+  { value: "Blangah Rise Primary School", label: "Blangah Rise Primary School" },
+  { value: "Boon Lay Garden Primary School", label: "Boon Lay Garden Primary School" },
+  { value: "Bukit Panjang Primary School", label: "Bukit Panjang Primary School" },
+  { value: "Bukit Timah Primary School", label: "Bukit Timah Primary School" },
+  { value: "Bukit View Primary School", label: "Bukit View Primary School" },
+  { value: "Canberra Primary School", label: "Canberra Primary School" },
+  { value: "Canossa Catholic Primary School", label: "Canossa Catholic Primary School" },
+  { value: "Cantonment Primary School", label: "Cantonment Primary School" },
+  { value: "Casuarina Primary School", label: "Casuarina Primary School" },
+  { value: "Catholic High School (Primary)", label: "Catholic High School (Primary)" },
+  { value: "Cedar Primary School", label: "Cedar Primary School" },
+  { value: "Changkat Primary School", label: "Changkat Primary School" },
+  { value: "CHIJ (Katong) Primary", label: "CHIJ (Katong) Primary" },
+  { value: "CHIJ (Kellock)", label: "CHIJ (Kellock)" },
+  { value: "CHIJ Our Lady of Good Counsel", label: "CHIJ Our Lady of Good Counsel" },
+  { value: "CHIJ Our Lady of the Nativity", label: "CHIJ Our Lady of the Nativity" },
+  { value: "CHIJ Our Lady Queen of Peace", label: "CHIJ Our Lady Queen of Peace" },
+  { value: "CHIJ Primary (Toa Payoh)", label: "CHIJ Primary (Toa Payoh)" },
+  { value: "CHIJ St. Nicholas Girls' School", label: "CHIJ St. Nicholas Girls' School" },
+  { value: "Chongfu School", label: "Chongfu School" },
+  { value: "Chongzheng Primary School", label: "Chongzheng Primary School" },
+  { value: "Chua Chu Kang Primary School", label: "Chua Chu Kang Primary School" },
+  { value: "Clementi Primary School", label: "Clementi Primary School" },
+  { value: "Compassvale Primary School", label: "Compassvale Primary School" },
+  { value: "Concord Primary School", label: "Concord Primary School" },
+  { value: "Corporation Primary School", label: "Corporation Primary School" },
+  { value: "Damai Primary School", label: "Damai Primary School" },
+  { value: "Dazhong Primary School", label: "Dazhong Primary School" },
+  { value: "De La Salle School", label: "De La Salle School" },
+  { value: "East Spring Primary School", label: "East Spring Primary School" },
+  { value: "Edgefield Primary School", label: "Edgefield Primary School" },
+  { value: "Elias Park Primary School", label: "Elias Park Primary School" },
+  { value: "Endeavour Primary School", label: "Endeavour Primary School" },
+  { value: "Evergreen Primary School", label: "Evergreen Primary School" },
+  { value: "Fairfield Methodist School (Primary)", label: "Fairfield Methodist School (Primary)" },
+  { value: "Farrer Park Primary School", label: "Farrer Park Primary School" },
+  { value: "Fengshan Primary School", label: "Fengshan Primary School" },
+  { value: "Fern Green Primary School", label: "Fern Green Primary School" },
+  { value: "Fernvale Primary School", label: "Fernvale Primary School" },
+  { value: "First Toa Payoh Primary School", label: "First Toa Payoh Primary School" },
+  { value: "Frontier Primary School", label: "Frontier Primary School" },
+  { value: "Fuchun Primary School", label: "Fuchun Primary School" },
+  { value: "Fuhua Primary School", label: "Fuhua Primary School" },
+  { value: "Gan Eng Seng Primary School", label: "Gan Eng Seng Primary School" },
+  { value: "Geylang Methodist School (Primary)", label: "Geylang Methodist School (Primary)" },
+  { value: "Gongshang Primary School", label: "Gongshang Primary School" },
+  { value: "Greendale Primary School", label: "Greendale Primary School" },
+  { value: "Greenridge Primary School", label: "Greenridge Primary School" },
+  { value: "Greenwood Primary School", label: "Greenwood Primary School" },
+  { value: "Haig Girls' School", label: "Haig Girls' School" },
+  { value: "Henry Park Primary School", label: "Henry Park Primary School" },
+  { value: "Holy Innocents' Primary School", label: "Holy Innocents' Primary School" },
+  { value: "Hong Wen School", label: "Hong Wen School" },
+  { value: "Horizon Primary School", label: "Horizon Primary School" },
+  { value: "Hougang Primary School", label: "Hougang Primary School" },
+  { value: "Huamin Primary School", label: "Huamin Primary School" },
+  { value: "Innova Primary School", label: "Innova Primary School" },
+  { value: "Jiemin Primary School", label: "Jiemin Primary School" },
+  { value: "Jing Shan Primary School", label: "Jing Shan Primary School" },
+  { value: "Junyuan Primary School", label: "Junyuan Primary School" },
+  { value: "Jurong Primary School", label: "Jurong Primary School" },
+  { value: "Jurong West Primary School", label: "Jurong West Primary School" },
+  { value: "Keming Primary School", label: "Keming Primary School" },
+  { value: "Kheng Cheng School", label: "Kheng Cheng School" },
+  { value: "Kong Hwa School", label: "Kong Hwa School" },
+  { value: "Kranji Primary School", label: "Kranji Primary School" },
+  { value: "Kuo Chuan Presbyterian Primary School", label: "Kuo Chuan Presbyterian Primary School" },
+  { value: "Lakeside Primary School", label: "Lakeside Primary School" },
+  { value: "Lianhua Primary School", label: "Lianhua Primary School" },
+  { value: "Maha Bodhi School", label: "Maha Bodhi School" },
+  { value: "Maris Stella High School (Primary)", label: "Maris Stella High School (Primary)" },
+  { value: "Marsiling Primary School", label: "Marsiling Primary School" },
+  { value: "Marymount Convent School", label: "Marymount Convent School" },
+  { value: "Mayflower Primary School", label: "Mayflower Primary School" },
+  { value: "Mee Toh School", label: "Mee Toh School" },
+  { value: "Meridian Primary School", label: "Meridian Primary School" },
+  { value: "Methodist Girls' School (Primary)", label: "Methodist Girls' School (Primary)" },
+  { value: "Montford Junior School", label: "Montford Junior School" },
+  { value: "Nan Chiau Primary School", label: "Nan Chiau Primary School" },
+  { value: "Nan Hua Primary School", label: "Nan Hua Primary School" },
+  { value: "Nanyang Primary School", label: "Nanyang Primary School" },
+  { value: "Naval Base Primary School", label: "Naval Base Primary School" },
+  { value: "New Town Primary School", label: "New Town Primary School" },
+  { value: "Ngee Ann Primary School", label: "Ngee Ann Primary School" },
+  { value: "North Spring Primary School", label: "North Spring Primary School" },
+  { value: "North View Primary School", label: "North View Primary School" },
+  { value: "North Vista Primary School", label: "North Vista Primary School" },
+  { value: "Northland Primary School", label: "Northland Primary School" },
+  { value: "Northoaks Primary School", label: "Northoaks Primary School" },
+  { value: "Northshore Primary School", label: "Northshore Primary School" },
+  { value: "Oasis Primary School", label: "Oasis Primary School" },
+  { value: "Opera Estate Primary School", label: "Opera Estate Primary School" },
+  { value: "Palm View Primary School", label: "Palm View Primary School" },
+  { value: "Park View Primary School", label: "Park View Primary School" },
+  { value: "Pasir Ris Primary School", label: "Pasir Ris Primary School" },
+  { value: "Paya Lebar Methodist Girls' School (Primary)", label: "Paya Lebar Methodist Girls' School (Primary)" },
+  { value: "Pei Chun Public School", label: "Pei Chun Public School" },
+  { value: "Pei Hwa Presbyterian Primary School", label: "Pei Hwa Presbyterian Primary School" },
+  { value: "Pei Tong Primary School", label: "Pei Tong Primary School" },
+  { value: "Peiying Primary School", label: "Peiying Primary School" },
+  { value: "Pioneer Primary School", label: "Pioneer Primary School" },
+  { value: "Poi Ching School", label: "Poi Ching School" },
+  { value: "Princess Elizabeth Primary School", label: "Princess Elizabeth Primary School" },
+  { value: "Punggol Cove Primary School", label: "Punggol Cove Primary School" },
+  { value: "Punggol Green Primary School", label: "Punggol Green Primary School" },
+  { value: "Punggol Primary School", label: "Punggol Primary School" },
+  { value: "Punggol View Primary School", label: "Punggol View Primary School" },
+  { value: "Qifa Primary School", label: "Qifa Primary School" },
+  { value: "Qihua Primary School", label: "Qihua Primary School" },
+  { value: "Queenstown Primary School", label: "Queenstown Primary School" },
+  { value: "Radin Mas Primary School", label: "Radin Mas Primary School" },
+  { value: "Raffles Girls' Primary School", label: "Raffles Girls' Primary School" },
+  { value: "Red Swastika School", label: "Red Swastika School" },
+  { value: "River Valley Primary School", label: "River Valley Primary School" },
+  { value: "Riverside Primary School", label: "Riverside Primary School" },
+  { value: "Rivervale Primary School", label: "Rivervale Primary School" },
+  { value: "Rosyth School", label: "Rosyth School" },
+  { value: "Rulang Primary School", label: "Rulang Primary School" },
+  { value: "Sembawang Primary School", label: "Sembawang Primary School" },
+  { value: "Seng Kang Primary School", label: "Seng Kang Primary School" },
+  { value: "Sengkang Green Primary School", label: "Sengkang Green Primary School" },
+  { value: "Shuqun Primary School", label: "Shuqun Primary School" },
+  { value: "Si Ling Primary School", label: "Si Ling Primary School" },
+  { value: "Singapore Chinese Girls' Primary School", label: "Singapore Chinese Girls' Primary School" },
+  { value: "South View Primary School", label: "South View Primary School" },
+  { value: "Springdale Primary School", label: "Springdale Primary School" },
+  { value: "St Andrew's School (Junior)", label: "St Andrew's School (Junior)" },
+  { value: "St Joseph's Institution Junior", label: "St Joseph's Institution Junior" },
+  { value: "St Stephen's School", label: "St Stephen's School" },
+  { value: "St. Anthony's Canossian Primary School", label: "St. Anthony's Canossian Primary School" },
+  { value: "St. Anthony's Primary School", label: "St. Anthony's Primary School" },
+  { value: "St. Gabriel's Primary School", label: "St. Gabriel's Primary School" },
+  { value: "St. Hilda's Primary School", label: "St. Hilda's Primary School" },
+  { value: "St. Margaret's School (Primary)", label: "St. Margaret's School (Primary)" },
+  { value: "Tampines North Primary School", label: "Tampines North Primary School" },
+  { value: "Tampines Primary School", label: "Tampines Primary School" },
+  { value: "Tanjong Katong Primary School", label: "Tanjong Katong Primary School" },
+  { value: "Tao Nan School", label: "Tao Nan School" },
+  { value: "Teck Ghee Primary School", label: "Teck Ghee Primary School" },
+  { value: "Teck Whye Primary School", label: "Teck Whye Primary School" },
+  { value: "Telok Kurau Primary School", label: "Telok Kurau Primary School" },
+  { value: "Temasek Primary School", label: "Temasek Primary School" },
+  { value: "Townsville Primary School", label: "Townsville Primary School" },
+  { value: "Unity Primary School", label: "Unity Primary School" },
+  { value: "Valour Primary School", label: "Valour Primary School" },
+  { value: "Waterway Primary School", label: "Waterway Primary School" },
+  { value: "Wellington Primary School", label: "Wellington Primary School" },
+  { value: "West Grove Primary School", label: "West Grove Primary School" },
+  { value: "West Spring Primary School", label: "West Spring Primary School" },
+  { value: "West View Primary School", label: "West View Primary School" },
+  { value: "Westwood Primary School", label: "Westwood Primary School" },
+  { value: "White Sands Primary School", label: "White Sands Primary School" },
+  { value: "Woodgrove Primary School", label: "Woodgrove Primary School" },
+  { value: "Woodlands Primary School", label: "Woodlands Primary School" },
+  { value: "Woodlands Ring Primary School", label: "Woodlands Ring Primary School" },
+  { value: "Xinghua Primary School", label: "Xinghua Primary School" },
+  { value: "Xingnan Primary School", label: "Xingnan Primary School" },
+  { value: "Xinmin Primary School", label: "Xinmin Primary School" },
+  { value: "Xishan Primary School", label: "Xishan Primary School" },
+  { value: "Yangzheng Primary School", label: "Yangzheng Primary School" },
+  { value: "Yew Tee Primary School", label: "Yew Tee Primary School" },
+  { value: "Yio Chu Kang Primary School", label: "Yio Chu Kang Primary School" },
+  { value: "Yishun Primary School", label: "Yishun Primary School" },
+  { value: "Yu Neng Primary School", label: "Yu Neng Primary School" },
+  { value: "Yuhua Primary School", label: "Yuhua Primary School" },
+  { value: "Yumin Primary School", label: "Yumin Primary School" },
+  { value: "Zhangde Primary School", label: "Zhangde Primary School" },
+  { value: "Zhenghua Primary School", label: "Zhenghua Primary School" },
+  { value: "Zhonghua Primary School", label: "Zhonghua Primary School" },
+  { value: "Other", label: "Other" },
+];
+
+export const SECONDARY_SCHOOLS = [
+  { value: "Admiralty Secondary School", label: "Admiralty Secondary School" },
+  { value: "Ahmad Ibrahim Secondary School", label: "Ahmad Ibrahim Secondary School" },
+  { value: "Anderson Secondary School", label: "Anderson Secondary School" },
+  { value: "Ang Mo Kio Secondary School", label: "Ang Mo Kio Secondary School" },
+  { value: "Anglican High School", label: "Anglican High School" },
+  { value: "Anglo-Chinese School (Barker Road)", label: "Anglo-Chinese School (Barker Road)" },
+  { value: "Anglo-Chinese School (Independent)", label: "Anglo-Chinese School (Independent)" },
+  { value: "Assumption English School", label: "Assumption English School" },
+  { value: "Assumption Pathway School", label: "Assumption Pathway School" },
+  { value: "Bartley Secondary School", label: "Bartley Secondary School" },
+  { value: "Beatty Secondary School", label: "Beatty Secondary School" },
+  { value: "Bedok Green Secondary School", label: "Bedok Green Secondary School" },
+  { value: "Bedok South Secondary School", label: "Bedok South Secondary School" },
+  { value: "Bedok View Secondary School", label: "Bedok View Secondary School" },
+  { value: "Bendemeer Secondary School", label: "Bendemeer Secondary School" },
+  { value: "Boon Lay Secondary School", label: "Boon Lay Secondary School" },
+  { value: "Bowen Secondary School", label: "Bowen Secondary School" },
+  { value: "Broadrick Secondary School", label: "Broadrick Secondary School" },
+  { value: "Bukit Batok Secondary School", label: "Bukit Batok Secondary School" },
+  { value: "Bukit Merah Secondary School", label: "Bukit Merah Secondary School" },
+  { value: "Bukit Panjang Govt. High School", label: "Bukit Panjang Govt. High School" },
+  { value: "Bukit View Secondary School", label: "Bukit View Secondary School" },
+  { value: "Canberra Secondary School", label: "Canberra Secondary School" },
+  { value: "Catholic High School", label: "Catholic High School" },
+  { value: "Cedar Girls' Secondary School", label: "Cedar Girls' Secondary School" },
+  { value: "Changkat Changi Secondary School", label: "Changkat Changi Secondary School" },
+  { value: "CHIJ Katong Convent", label: "CHIJ Katong Convent" },
+  { value: "CHIJ Secondary (Toa Payoh)", label: "CHIJ Secondary (Toa Payoh)" },
+  { value: "CHIJ St. Joseph's Convent", label: "CHIJ St. Joseph's Convent" },
+  { value: "CHIJ St. Nicholas Girls' School", label: "CHIJ St. Nicholas Girls' School" },
+  { value: "CHIJ St. Theresa's Convent", label: "CHIJ St. Theresa's Convent" },
+  { value: "Christ Church Secondary School", label: "Christ Church Secondary School" },
+  { value: "Chua Chu Kang Secondary School", label: "Chua Chu Kang Secondary School" },
+  { value: "Chung Cheng High School (Main)", label: "Chung Cheng High School (Main)" },
+  { value: "Chung Cheng High School (Yishun)", label: "Chung Cheng High School (Yishun)" },
+  { value: "Clementi Town Secondary School", label: "Clementi Town Secondary School" },
+  { value: "Commonwealth Secondary School", label: "Commonwealth Secondary School" },
+  { value: "Compassvale Secondary School", label: "Compassvale Secondary School" },
+  { value: "Crescent Girls' School", label: "Crescent Girls' School" },
+  { value: "Crest Secondary School", label: "Crest Secondary School" },
+  { value: "Damai Secondary School", label: "Damai Secondary School" },
+  { value: "Deyi Secondary School", label: "Deyi Secondary School" },
+  { value: "Dunearn Secondary School", label: "Dunearn Secondary School" },
+  { value: "Dunman High School", label: "Dunman High School" },
+  { value: "Dunman Secondary School", label: "Dunman Secondary School" },
+  { value: "East Spring Secondary School", label: "East Spring Secondary School" },
+  { value: "Edgefield Secondary School", label: "Edgefield Secondary School" },
+  { value: "Evergreen Secondary School", label: "Evergreen Secondary School" },
+  { value: "Fairfield Methodist School (Secondary)", label: "Fairfield Methodist School (Secondary)" },
+  { value: "Fuhua Secondary School", label: "Fuhua Secondary School" },
+  { value: "Gan Eng Seng School", label: "Gan Eng Seng School" },
+  { value: "Geylang Methodist School (Secondary)", label: "Geylang Methodist School (Secondary)" },
+  { value: "Greendale Secondary School", label: "Greendale Secondary School" },
+  { value: "Greenridge Secondary School", label: "Greenridge Secondary School" },
+  { value: "Guangyang Secondary School", label: "Guangyang Secondary School" },
+  { value: "Hai Sing Catholic School", label: "Hai Sing Catholic School" },
+  { value: "Hillgrove Secondary School", label: "Hillgrove Secondary School" },
+  { value: "Holy Innocents' High School", label: "Holy Innocents' High School" },
+  { value: "Hougang Secondary School", label: "Hougang Secondary School" },
+  { value: "Hua Yi Secondary School", label: "Hua Yi Secondary School" },
+  { value: "Hwa Chong Institution", label: "Hwa Chong Institution" },
+  { value: "Junyuan Secondary School", label: "Junyuan Secondary School" },
+  { value: "Jurong Secondary School", label: "Jurong Secondary School" },
+  { value: "Jurong West Secondary School", label: "Jurong West Secondary School" },
+  { value: "Jurongville Secondary School", label: "Jurongville Secondary School" },
+  { value: "Juying Secondary School", label: "Juying Secondary School" },
+  { value: "Kent Ridge Secondary School", label: "Kent Ridge Secondary School" },
+  { value: "Kranji Secondary School", label: "Kranji Secondary School" },
+  { value: "Kuo Chuan Presbyterian Secondary School", label: "Kuo Chuan Presbyterian Secondary School" },
+  { value: "Loyang View Secondary School", label: "Loyang View Secondary School" },
+  { value: "Manjusri Secondary School", label: "Manjusri Secondary School" },
+  { value: "Maris Stella High School", label: "Maris Stella High School" },
+  { value: "Marsiling Secondary School", label: "Marsiling Secondary School" },
+  { value: "Mayflower Secondary School", label: "Mayflower Secondary School" },
+  { value: "Meridian Secondary School", label: "Meridian Secondary School" },
+  { value: "Methodist Girls' School (Secondary)", label: "Methodist Girls' School (Secondary)" },
+  { value: "Montfort Secondary School", label: "Montfort Secondary School" },
+  { value: "Nan Chiau High School", label: "Nan Chiau High School" },
+  { value: "Nan Hua High School", label: "Nan Hua High School" },
+  { value: "Nanyang Girls' High School", label: "Nanyang Girls' High School" },
+  { value: "National Junior College (Secondary)", label: "National Junior College (Secondary)" },
+  { value: "Naval Base Secondary School", label: "Naval Base Secondary School" },
+  { value: "New Town Secondary School", label: "New Town Secondary School" },
+  { value: "Ngee Ann Secondary School", label: "Ngee Ann Secondary School" },
+  { value: "North Vista Secondary School", label: "North Vista Secondary School" },
+  { value: "Northbrooks Secondary School", label: "Northbrooks Secondary School" },
+  { value: "Northland Secondary School", label: "Northland Secondary School" },
+  { value: "Northlight School", label: "Northlight School" },
+  { value: "NUS High School of Mathematics and Science", label: "NUS High School of Mathematics and Science" },
+  { value: "Orchid Park Secondary School", label: "Orchid Park Secondary School" },
+  { value: "Outram Secondary School", label: "Outram Secondary School" },
+  { value: "Pasir Ris Crest Secondary School", label: "Pasir Ris Crest Secondary School" },
+  { value: "Pasir Ris Secondary School", label: "Pasir Ris Secondary School" },
+  { value: "Paya Lebar Methodist Girls' School (Secondary)", label: "Paya Lebar Methodist Girls' School (Secondary)" },
+  { value: "Pei Hwa Secondary School", label: "Pei Hwa Secondary School" },
+  { value: "Peicai Secondary School", label: "Peicai Secondary School" },
+  { value: "Peirce Secondary School", label: "Peirce Secondary School" },
+  { value: "Presbyterian High School", label: "Presbyterian High School" },
+  { value: "Punggol Secondary School", label: "Punggol Secondary School" },
+  { value: "Queenstown Secondary School", label: "Queenstown Secondary School" },
+  { value: "Queensway Secondary School", label: "Queensway Secondary School" },
+  { value: "Raffles Girls' School (Secondary)", label: "Raffles Girls' School (Secondary)" },
+  { value: "Raffles Institution", label: "Raffles Institution" },
+  { value: "Regent Secondary School", label: "Regent Secondary School" },
+  { value: "River Valley High School", label: "River Valley High School" },
+  { value: "Riverside Secondary School", label: "Riverside Secondary School" },
+  { value: "School of Science & Technology", label: "School of Science & Technology" },
+  { value: "School of the Arts", label: "School of the Arts" },
+  { value: "Sembawang Secondary School", label: "Sembawang Secondary School" },
+  { value: "Seng Kang Secondary School", label: "Seng Kang Secondary School" },
+  { value: "Serangoon Garden Secondary School", label: "Serangoon Garden Secondary School" },
+  { value: "Serangoon Secondary School", label: "Serangoon Secondary School" },
+  { value: "Singapore Chinese Girls' School", label: "Singapore Chinese Girls' School" },
+  { value: "Singapore Sports School", label: "Singapore Sports School" },
+  { value: "Spectra Secondary School", label: "Spectra Secondary School" },
+  { value: "Springfield Secondary School", label: "Springfield Secondary School" },
+  { value: "St Andrew's School (Secondary)", label: "St Andrew's School (Secondary)" },
+  { value: "St. Anthony's Canossian Secondary School", label: "St. Anthony's Canossian Secondary School" },
+  { value: "St. Gabriel's Secondary School", label: "St. Gabriel's Secondary School" },
+  { value: "St. Hilda's Secondary School", label: "St. Hilda's Secondary School" },
+  { value: "St. Joseph's Institution", label: "St. Joseph's Institution" },
+  { value: "St. Margaret's School (Secondary)", label: "St. Margaret's School (Secondary)" },
+  { value: "St. Patrick's School", label: "St. Patrick's School" },
+  { value: "Swiss Cottage Secondary School", label: "Swiss Cottage Secondary School" },
+  { value: "Tampines Secondary School", label: "Tampines Secondary School" },
+  { value: "Tanjong Katong Girls' School", label: "Tanjong Katong Girls' School" },
+  { value: "Tanjong Katong Secondary School", label: "Tanjong Katong Secondary School" },
+  { value: "Temasek Junior College", label: "Temasek Junior College" },
+  { value: "Temasek Secondary School", label: "Temasek Secondary School" },
+  { value: "Unity Secondary School", label: "Unity Secondary School" },
+  { value: "Victoria School", label: "Victoria School" },
+  { value: "West Spring Secondary School", label: "West Spring Secondary School" },
+  { value: "Westwood Secondary School", label: "Westwood Secondary School" },
+  { value: "Whitley Secondary School", label: "Whitley Secondary School" },
+  { value: "Woodgrove Secondary School", label: "Woodgrove Secondary School" },
+  { value: "Woodlands Ring Secondary School", label: "Woodlands Ring Secondary School" },
+  { value: "Woodlands Secondary School", label: "Woodlands Secondary School" },
+  { value: "Xinmin Secondary School", label: "Xinmin Secondary School" },
+  { value: "Yio Chu Kang Secondary School", label: "Yio Chu Kang Secondary School" },
+  { value: "Yishun Secondary School", label: "Yishun Secondary School" },
+  { value: "Yishun Town Secondary School", label: "Yishun Town Secondary School" },
+  { value: "Yuan Ching Secondary School", label: "Yuan Ching Secondary School" },
+  { value: "Yuhua Secondary School", label: "Yuhua Secondary School" },
+  { value: "Yusof Ishak Secondary School", label: "Yusof Ishak Secondary School" },
+  { value: "Yuying Secondary School", label: "Yuying Secondary School" },
+  { value: "Zhenghua Secondary School", label: "Zhenghua Secondary School" },
+  { value: "Zhonghua Secondary School", label: "Zhonghua Secondary School" },
+  { value: "Other", label: "Other" },
+];

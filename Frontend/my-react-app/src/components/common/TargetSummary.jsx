@@ -1,4 +1,3 @@
-import React from "react";
 import { describeTarget } from "../../data/seed";
 
 /**
@@ -12,7 +11,7 @@ export default function TargetSummary({ target, showRoster = false, compact = fa
 
   const KIND_STYLES = {
     unit: "bg-[#DBEAFE] text-[#1D4ED8]",
-    ambassador: "bg-[#EDE9FE] text-[#6D28D9]",
+    ambassador: "bg-[#EDF4FF] text-[#2459A9]",
     team: "bg-[#FEF3C7] text-[#B45309]",
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
@@ -9,21 +9,16 @@ import Modal from "../../components/common/Modal";
 import { useModal } from "../../hooks/useModal";
 import { useEngagements } from "../../hooks/useEngagements";
 import { getTier, TIMING_SLOTS } from "../../data/options";
+import TabFilter from "../../components/common/TabFilter";
+import { TAB, tabsFor, applyTab, resolveTab, TAB_PARAM } from "../../utils/tabs";
+import DataTable from "../../components/common/DataTable";
 
 const timingLabel = (v) => TIMING_SLOTS.find((t) => t.value === v)?.label ?? v;
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
 
-// Filter keys map to statuses; "Awaiting" is the dashboard's "pending" bucket.
-const FILTERS = [
-  { key: "Awaiting confirmation", label: "Awaiting", statuses: ["Awaiting confirmation"] },
-  { key: "Confirmed", label: "Confirmed", statuses: ["Confirmed"] },
-  { key: "Cancelled", label: "Cancelled", statuses: ["Cancelled"] },
-  { key: "All", label: "All", statuses: null },
-];
-
-// Dashboard deep-links use ?status=Approved|Pending — map those to the new keys.
-const LEGACY_STATUS = { Approved: "Confirmed", Pending: "Awaiting confirmation", Rejected: "Cancelled" };
+// Shared tab definitions — same everywhere (see utils/tabs.js).
+const TABS = tabsFor([TAB.OPEN, TAB.AWAITING, TAB.CONFIRMED, TAB.CANCELLED, TAB.ALL]);
 
 function DetailRow({ label, children }) {
   return (
@@ -38,26 +33,21 @@ export default function MatchManagementPage() {
   const { matches, resetDemo } = useEngagements();
   const { open, payload, openModal, closeModal } = useModal();
   const [searchParams] = useSearchParams();
-  const [filter, setFilter] = useState("Awaiting confirmation");
+  const [tab, setTab] = useState(TAB.AWAITING);
 
+  // Dashboard stat cards deep-link here, e.g. /admin/approvals?tab=confirmed
   useEffect(() => {
-    const s = searchParams.get("status");
-    if (!s) return;
-    const mapped = LEGACY_STATUS[s] ?? s;
-    if (FILTERS.some((f) => f.key === mapped)) setFilter(mapped);
+    setTab(resolveTab(searchParams.get(TAB_PARAM), TABS, TAB.AWAITING));
   }, [searchParams]);
 
-  const active = FILTERS.find((f) => f.key === filter) ?? FILTERS[0];
-  const rows = matches
-    .filter((m) => (active.statuses ? active.statuses.includes(m.status) : true))
+  const activeTab = TABS.find((t) => t.key === tab) ?? TABS[0];
+  const rows = applyTab(matches, activeTab)
     .slice()
     .sort((a, b) => {
       if (!a.date) return 1;
       if (!b.date) return -1;
       return new Date(a.date) - new Date(b.date);
     });
-
-  const awaitingCount = matches.filter((m) => m.status === "Awaiting confirmation").length;
   const liveMatch = payload ? matches.find((m) => m.id === payload.id) ?? payload : null;
 
   return (
@@ -73,26 +63,7 @@ export default function MatchManagementPage() {
         }
       />
 
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              filter === f.key
-                ? "bg-[#1C1917] text-white font-medium"
-                : "bg-white border border-[#E7E5E4] text-[#44403C] hover:bg-[#F5F5F4]"
-            }`}
-          >
-            {f.label}
-            {f.key === "Awaiting confirmation" && awaitingCount > 0 && (
-              <span className={`ml-2 text-xs ${filter === f.key ? "text-white/60" : "text-[#B45309]"}`}>
-                {awaitingCount}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <TabFilter tabs={TABS} value={tab} onChange={setTab} items={matches} />
 
       <div className="card overflow-hidden">
         {rows.length === 0 ? (
@@ -100,6 +71,7 @@ export default function MatchManagementPage() {
             <p className="text-sm text-[#78716C]">No engagements in this view.</p>
           </div>
         ) : (
+          <DataTable>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[#78716C] bg-[#FAFAF9] border-b border-[#E7E5E4]">
@@ -138,6 +110,7 @@ export default function MatchManagementPage() {
               })}
             </tbody>
           </table>
+          </DataTable>
         )}
       </div>
 

@@ -93,7 +93,7 @@ export const formations = [
   {
     id: "army-medical",
     name: "Army Medical Services",
-    formation: "army_medical",
+    formation: "medical",
     location: "Nee Soon Camp",
     mobility: "sharing_booth",
     topics: ["vocation", "women_in_army"],
@@ -119,7 +119,7 @@ export const formations = [
   {
     id: "combat-engineering",
     name: "Combat Engineers",
-    formation: "combat_engineering",
+    formation: "combat_engineers",
     location: "Seletar Camp",
     mobility: "sharing_booth",
     topics: ["technology", "vocation", "leadership"],
@@ -145,7 +145,7 @@ export const formations = [
   {
     id: "ammunition-command",
     name: "SAF Ammunition Command",
-    formation: "ammunition",
+    formation: "army_engineer_ammo",
     location: "Kranji Camp II",
     mobility: "sharing",
     topics: ["vocation", "technology"],

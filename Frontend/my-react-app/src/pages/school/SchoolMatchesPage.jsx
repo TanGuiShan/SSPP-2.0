@@ -1,4 +1,5 @@
-import React from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import TargetSummary from "../../components/common/TargetSummary";
@@ -8,6 +9,11 @@ import Modal from "../../components/common/Modal";
 import { useModal } from "../../hooks/useModal";
 import { useEngagements } from "../../hooks/useEngagements";
 import { getTier, TIMING_SLOTS } from "../../data/options";
+import TabFilter from "../../components/common/TabFilter";
+import { TAB, tabsFor, applyTab, resolveTab, TAB_PARAM } from "../../utils/tabs";
+
+// Shared tab definitions — same everywhere (see utils/tabs.js).
+const TABS = tabsFor([TAB.ALL, TAB.OPEN, TAB.AWAITING, TAB.CONFIRMED, TAB.CANCELLED]);
 
 const timingLabel = (v) => TIMING_SLOTS.find((t) => t.value === v)?.label ?? v;
 
@@ -31,6 +37,16 @@ function DetailRow({ label, children }) {
 export default function SchoolMatchesPage() {
   const { matches, cancelMatch } = useEngagements();
   const { open, payload, openModal, closeModal } = useModal();
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(TAB.ALL);
+
+  // Dashboard stat cards deep-link here, e.g. /school/matches?tab=confirmed
+  useEffect(() => {
+    setTab(resolveTab(searchParams.get(TAB_PARAM), TABS, TAB.ALL));
+  }, [searchParams]);
+
+  const activeTab = TABS.find((t) => t.key === tab) ?? TABS[0];
+  const rows = useMemo(() => applyTab(matches, activeTab), [matches, activeTab]);
 
   const handleCancel = (id) => {
     cancelMatch(id);
@@ -45,14 +61,20 @@ export default function SchoolMatchesPage() {
         subtitle="Track who has confirmed for each engagement"
       />
 
-      {matches.length === 0 ? (
+      {matches.length > 0 && (
+        <TabFilter tabs={TABS} value={tab} onChange={setTab} items={matches} />
+      )}
+
+      {rows.length === 0 ? (
         <div className="card py-16 text-center">
           <p className="text-sm text-[#78716C]">
-            No matches yet. Submit an interest form and wait for admin approval.
+            {matches.length === 0
+              ? "No engagements yet. Submit an interest form to get started."
+              : `No ${activeTab.label.toLowerCase()} engagements.`}
           </p>
         </div>
       ) : (
-        matches.map((m) => (
+        rows.map((m) => (
           <button
             key={m.id}
             onClick={() => openModal(m)}

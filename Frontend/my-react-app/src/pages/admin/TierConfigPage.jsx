@@ -1,4 +1,3 @@
-import React from "react";
 import PageHeader from "../../components/common/PageHeader";
 import Button from "../../components/common/Button";
 import { TIERS } from "../../data/options";

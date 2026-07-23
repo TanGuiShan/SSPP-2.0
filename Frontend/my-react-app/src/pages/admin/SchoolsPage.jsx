@@ -1,11 +1,10 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import { useEngagements } from "../../hooks/useEngagements";
 import { onboardSchools } from "../../data/schools";
 import { SCHOOL_LEVELS } from "../../data/options";
-
-const levelLabel = (v) => SCHOOL_LEVELS.find((l) => l.value === v)?.label ?? v;
+import DataTable from "../../components/common/DataTable";
 
 export default function SchoolsPage() {
   const { matches } = useEngagements();
@@ -60,7 +59,7 @@ export default function SchoolsPage() {
             >
               {lvl.label}
               <span className={`ml-2 text-xs ${level === lvl.value ? "text-white/60" : "text-[#A8A29E]"}`}>
-                {count}
+                {count-1}
               </span>
             </button>
           );
@@ -73,11 +72,13 @@ export default function SchoolsPage() {
             {group.label} <span className="text-[#A8A29E]">({group.items.length})</span>
           </h2>
           <div className="card overflow-hidden">
-            <table className="w-full text-sm">
+            <DataTable>
+          <table className="w-full text-sm">
               <tbody>
                 {group.items.map((s) => {
                   const matched = matchedNames.has(s.name);
                   return (
+                    
                     <tr key={s.id} className="border-b border-[#F5F5F4] last:border-0">
                       <td className="px-6 py-4 font-medium text-[#1C1917]">{s.name}</td>
                       <td className="px-6 py-4 text-right">
@@ -90,10 +91,12 @@ export default function SchoolsPage() {
                         )}
                       </td>
                     </tr>
+                      
                   );
                 })}
               </tbody>
             </table>
+          </DataTable>
           </div>
         </div>
       ))}

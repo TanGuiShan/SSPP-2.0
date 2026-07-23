@@ -1,14 +1,15 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/common/StatCard";
-import StatusBadge from "../../components/common/StatusBadge";
 import TargetSummary from "../../components/common/TargetSummary";
-import { useEngagements } from "../../hooks/useEngagements";
+import { useEngagements, isEscalated, slotsRemaining } from "../../hooks/useEngagements";
 import { formations } from "../../data/formations";
 import { ambassadors } from "../../data/ambassadors";
-import { schools, schoolCountsByLevel, onboardSchools } from "../../data/schools";
+import { schoolCountsByLevel, onboardSchools } from "../../data/schools";
 import { SCHOOL_LEVELS } from "../../data/options";
+import { TAB, linkToTab } from "../../utils/tabs";
+import DataTable from "../../components/common/DataTable";
 
 const STALE_AFTER_DAYS = 7;
 const DAY = 24 * 60 * 60 * 1000;
@@ -19,11 +20,9 @@ const daysUntil = (iso) => (iso ? Math.ceil((new Date(iso).getTime() - Date.now(
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
-const levelLabel = (v) => SCHOOL_LEVELS.find((l) => l.value === v)?.label ?? v;
-
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
-  const { interestForms, matches } = useEngagements();
+  const { interestForms, matches, assignProvider } = useEngagements();
 
   const stats = useMemo(() => {
     const onboarded = onboardSchools();
@@ -75,7 +74,14 @@ export default function AdminDashboardPage() {
       ? Math.round((matchedRequests / interestForms.length) * 100)
       : 0;
 
+    // Open requests nobody has picked up past the escalation window — admin
+    // steps in here, and only here, since they're otherwise out of matching.
+    const escalatedRequests = matches
+      .filter((m) => isEscalated(m))
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
     return {
+      escalatedRequests,
       onboardedCount: onboarded.length,
       levelCounts,
       matchedRequests,
@@ -118,7 +124,7 @@ export default function AdminDashboardPage() {
           value={stats.matchedSchools}
           valueColor="#16A34A"
           hint="See in Match Results"
-          onClick={() => navigate("/admin/approvals?status=Approved")}
+          onClick={() => navigate(linkToTab("/admin/approvals", TAB.CONFIRMED))}
         />
         <StatCard
           label="Yet to match (schools)"
@@ -130,7 +136,7 @@ export default function AdminDashboardPage() {
           value={stats.staleSchools.length}
           valueColor={stats.staleSchools.length > 0 ? "#DC2626" : "#16A34A"}
           hint="Pending in Match Results"
-          onClick={() => navigate("/admin/approvals?status=Pending")}
+          onClick={() => navigate(linkToTab("/admin/approvals", TAB.AWAITING))}
         />
       </div>
 
@@ -169,7 +175,7 @@ export default function AdminDashboardPage() {
       {/* Request & reach summary */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
         <button
-          onClick={() => navigate("/admin/approvals?status=Approved")}
+          onClick={() => navigate(linkToTab("/admin/approvals", TAB.CONFIRMED))}
           className="card group p-6 text-left hover:border-[#A8A29E] transition-colors"
         >
           <div className="flex items-center justify-between">
@@ -198,6 +204,68 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stale flag */}
+      {/* Escalation: open requests nobody volunteered for. This is the ONLY
+          place admin assigns a provider — the fallback when the market fails. */}
+      {stats.escalatedRequests.length > 0 && (
+        <div className="sspp-escalation">
+          <div className="sspp-escalation-head">
+            <h2>Needs assignment</h2>
+            <p>
+              {stats.escalatedRequests.length} open request
+              {stats.escalatedRequests.length > 1 ? "s" : ""} with no volunteers after{" "}
+              {STALE_AFTER_DAYS} days
+            </p>
+          </div>
+
+          {stats.escalatedRequests.map((m) => {
+            const pool = m.category === "unit" ? formations : ambassadors;
+            const left = slotsRemaining(m);
+            return (
+              <div key={m.id} className="sspp-escalation-row">
+                <div>
+                  <p className="sspp-escalation-school">{m.school}</p>
+                  <p className="sspp-escalation-meta">
+                    {new Date(m.date).toLocaleDateString("en-SG", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}{" "}
+                    · {m.participants} pax · needs {left} more
+                  </p>
+                </div>
+
+                <select
+                  className="sspp-assign-select"
+                  defaultValue=""
+                  onChange={(e) => {
+                    const picked = pool.find((x) => x.id === e.target.value);
+                    if (!picked) return;
+                    assignProvider(m.id, {
+                      id: picked.id,
+                      kind: m.category === "unit" ? "unit" : "ambassador",
+                      name: picked.name,
+                      ...(m.category === "unit"
+                        ? { location: picked.location }
+                        : { rank: picked.rank, appointment: picked.appointment }),
+                    });
+                    e.target.value = "";
+                  }}
+                >
+                  <option value="" disabled>
+                    Assign a provider...
+                  </option>
+                  {pool.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.rank ? `${x.rank} ${x.name}` : x.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {stats.staleSchools.length > 0 && (
         <div className="rounded-lg border border-[#F5C6C6] bg-[#FEF2F2] p-5 mb-5">
           <div className="flex items-start gap-3">
@@ -251,6 +319,7 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-[#78716C]">No upcoming engagements scheduled.</p>
           </div>
         ) : (
+          <DataTable>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[#78716C] bg-[#FAFAF9] border-b border-[#E7E5E4]">
@@ -289,6 +358,7 @@ export default function AdminDashboardPage() {
               })}
             </tbody>
           </table>
+          </DataTable>
         )}
       </div>
     </>

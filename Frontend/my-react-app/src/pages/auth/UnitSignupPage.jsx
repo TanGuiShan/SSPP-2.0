@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SignupLayout from "../../layouts/SignupLayout";
 import FormSection from "../../components/common/FormSection";
@@ -10,7 +10,7 @@ import { useForm } from "../../hooks/useForm";
 import { accountTier } from "../../utils/domain";
 import { SKIP_DOMAIN_CHECK } from "../../config/testMode";
 import {
-  MOBILITY_OPTIONS,
+  UNIT_MOBILITY_OPTIONS,
   FORMATIONS,
   SCHOOL_LEVELS,
   RANKS,
@@ -26,6 +26,7 @@ export default function UnitSignupPage() {
     rank: "",
     fullName: "",
     appointment: "",
+    unit:"",
     formation: "",
     topics: [],
     email: "",
@@ -83,7 +84,7 @@ export default function UnitSignupPage() {
           <RadioCards
             name="mobility"
             required
-            options={MOBILITY_OPTIONS}
+            options={UNIT_MOBILITY_OPTIONS}
             value={values.mobility}
             onChange={(v) => setField("mobility", v)}
           />
@@ -127,6 +128,13 @@ export default function UnitSignupPage() {
               placeholder="e.g. Company Commander"
               value={values.appointment}
               onChange={handleChange("appointment")}
+            />
+            <Input
+              label="Unit"
+              required
+              placeholder="e.g. 3 SIR"
+              value={values.unit}
+              onChange={handleChange("unit")}
             />
             <Select
               label="Formation"

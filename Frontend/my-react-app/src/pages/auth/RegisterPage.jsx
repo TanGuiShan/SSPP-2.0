@@ -1,4 +1,4 @@
-import React from "react";
+import SgdsCard from "@govtechsg/sgds-web-component/react/card";
 import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../../layouts/AuthLayout";
 
@@ -7,19 +7,19 @@ const ROLES = [
     id: "school",
     to: "/register/school",
     title: "School",
-    description: "Book engagements for your students and browse available formations.",
+    description: "Browse available formations and request engagements for students.",
   },
   {
     id: "army-unit",
     to: "/register/unit",
-    title: "Army Unit",
-    description: "Register a unit or formation that can host engagements.",
+    title: "Army unit",
+    description: "Publish availability and host engagements as a formation or unit.",
   },
   {
     id: "army-ambassador",
     to: "/register/ambassador",
-    title: "Army Ambassador",
-    description: "Sign up as an individual who can share with schools.",
+    title: "Army ambassador",
+    description: "Volunteer individually or join an ambassador team for school sharing sessions.",
   },
 ];
 
@@ -28,43 +28,41 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout>
-      <div className="text-center mb-8">
-        <h1 className="text-4xl" style={{ fontFamily: "var(--font-display)" }}>Create account</h1>
-        <p className="text-sm text-[#78716C] mt-2">First, tell us who you are</p>
+      <div className="mb-8">
+        <p className="eyebrow">New account</p>
+        <h1>Create an account</h1>
+        <p className="sspp-page-subtitle">Choose the account type that best describes you.</p>
       </div>
 
       <div className="space-y-3">
         {ROLES.map((role) => (
-          <button
+          <SgdsCard
             key={role.id}
+            noPadding
+            className="cursor-pointer"
+            role="button"
+            tabIndex={0}
             onClick={() => navigate(role.to)}
-            className="w-full text-left rounded-lg border border-[#E7E5E4] p-4 hover:border-[#1C1917] hover:bg-[#FAFAF9] transition-colors group"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                navigate(role.to);
+              }
+            }}
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-4 p-5">
               <div>
-                <p className="text-sm font-medium text-[#1C1917]">{role.title}</p>
-                <p className="text-xs text-[#78716C] mt-1">{role.description}</p>
+                <h2 className="text-base">{role.title}</h2>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">{role.description}</p>
               </div>
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#A8A29E"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="shrink-0 group-hover:stroke-[#1C1917] transition-colors"
-              >
-                <path d="M9 6l6 6-6 6" />
-              </svg>
+              <span aria-hidden="true" className="text-xl">→</span>
             </div>
-          </button>
+          </SgdsCard>
         ))}
       </div>
 
-      <div className="text-center mt-6">
-        <Link to="/login" className="text-sm text-[#44403C] underline">← Back to sign in</Link>
+      <div className="mt-6 text-center">
+        <Link to="/login">← Back to sign in</Link>
       </div>
     </AuthLayout>
   );

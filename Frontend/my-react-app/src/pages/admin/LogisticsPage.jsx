@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/common/StatCard";
 import Button from "../../components/common/Button";
 import Modal from "../../components/common/Modal";
 import { Input } from "../../components/common/Input";
 import { useModal } from "../../hooks/useModal";
+import DataTable from "../../components/common/DataTable";
 import {
   deriveStock,
   DEMO_ALLOCATIONS,
@@ -146,6 +147,7 @@ export default function LogisticsPage() {
             </p>
           </div>
         ) : (
+          <DataTable>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[#78716C] bg-[#FAFAF9] border-b border-[#E7E5E4]">
@@ -211,6 +213,7 @@ export default function LogisticsPage() {
               })}
             </tbody>
           </table>
+          </DataTable>
         )}
       </div>
 

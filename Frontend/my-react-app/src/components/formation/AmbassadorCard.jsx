@@ -1,4 +1,3 @@
-import React from "react";
 import { CalendarIcon } from "../../assets/icons";
 import Button from "../common/Button";
 import { FORMATIONS, TOPICS, SCHOOL_LEVELS } from "../../data/options";

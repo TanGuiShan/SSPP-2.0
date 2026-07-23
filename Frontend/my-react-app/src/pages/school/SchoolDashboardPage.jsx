@@ -1,4 +1,3 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/common/StatCard";
@@ -6,6 +5,8 @@ import StatusBadge from "../../components/common/StatusBadge";
 import TargetSummary from "../../components/common/TargetSummary";
 import { useEngagements } from "../../hooks/useEngagements";
 import { getTier } from "../../data/options";
+import { TAB, linkToTab } from "../../utils/tabs";
+import DataTable from "../../components/common/DataTable";
 
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
@@ -16,6 +17,9 @@ export default function SchoolDashboardPage() {
 
   const engaged = matches.filter((m) => m.status === "Confirmed").length;
   const pending = interestForms.filter((f) => f.status === "Awaiting confirmation").length;
+  // Open requests are waiting on volunteers rather than on a chosen provider,
+  // so they're counted separately — otherwise posting one shows up nowhere.
+  const openRequests = interestForms.filter((f) => f.status === "Open").length;
 
   // Most recent activity across both lists, newest first
   const recent = [...interestForms]
@@ -30,10 +34,34 @@ export default function SchoolDashboardPage() {
         subtitle="Engagement analytics for the past year"
       />
 
-      <div className="flex gap-4 flex-wrap mb-8">
-        <StatCard label="Engaged" value={engaged} valueColor="#16A34A" />
-        <StatCard label="Interest Forms" value={interestForms.length} />
-        <StatCard label="Awaiting confirmation" value={pending} valueColor="#D97706" />
+      <div className="sspp-stat-row">
+        <StatCard
+          label="Engaged"
+          value={engaged}
+          valueColor="#16A34A"
+          hint="View my matches"
+          onClick={() => navigate(linkToTab("/school/matches", TAB.CONFIRMED))}
+        />
+        <StatCard
+          label="Interest Forms"
+          value={interestForms.length}
+          hint="View all requests"
+          onClick={() => navigate(linkToTab("/school/interest-forms", TAB.ALL))}
+        />
+        <StatCard
+          label="Open requests"
+          value={openRequests}
+          valueColor={openRequests > 0 ? "#2563EB" : undefined}
+          hint="Waiting for volunteers"
+          onClick={() => navigate(linkToTab("/school/interest-forms", TAB.OPEN))}
+        />
+        <StatCard
+          label="Awaiting confirmation"
+          value={pending}
+          valueColor="#D97706"
+          hint="View awaiting requests"
+          onClick={() => navigate(linkToTab("/school/interest-forms", TAB.AWAITING))}
+        />
       </div>
 
       <div className="card p-6">
@@ -56,6 +84,7 @@ export default function SchoolDashboardPage() {
             No engagements yet. Browse units or ambassadors to submit your first interest form.
           </p>
         ) : (
+          <DataTable>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[#78716C] border-b border-[#E7E5E4]">
@@ -84,6 +113,7 @@ export default function SchoolDashboardPage() {
               ))}
             </tbody>
           </table>
+          </DataTable>
         )}
       </div>
     </>

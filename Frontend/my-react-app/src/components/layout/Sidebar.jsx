@@ -1,58 +1,71 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
+import SgdsSidebar from "@govtechsg/sgds-web-component/react/sidebar";
+import SgdsSidebarItem from "@govtechsg/sgds-web-component/react/sidebar-item";
+import { useLocation, useNavigate } from "react-router-dom";
 import { LogoutIcon } from "../../assets/icons";
 
 /**
- * @param {{label: string, to: string, icon: React.ComponentType}[]} navItems
- * @param {string} roleLabel  e.g. "ARMY VIEW", "ADMIN VIEW", school name
- * @param {string} brand      e.g. "SSPP"
- * @param {() => void} onLogout
- * @param {{src?: string}} [logo]
+ * SGDS v3 application sidebar. Navigation still uses React Router, so moving
+ * between pages remains client-side and does not refresh the application.
+ *
+ * NOTE on Logout: it must be an <SgdsSidebarItem>, not a plain <Button>.
+ * SGDS collapses sidebar ITEMS automatically (hiding the title, keeping the
+ * icon) when the sidebar is collapsed. A Button in the lower slot isn't a
+ * sidebar item, so SGDS can't collapse it and the "Logout" label overflows
+ * past the collapsed rail.
  */
 export default function Sidebar({ navItems, roleLabel, brand = "SSPP", onLogout, logo }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeItem = navItems.find((item) => location.pathname.startsWith(item.to));
+
   return (
-    <aside className="w-[240px] shrink-0 bg-[#1C1917] text-[#A8A29E] flex flex-col h-full">
-      <div className="px-6 pt-8 pb-6 flex items-center gap-3">
-        {logo?.src && (
-          <img src={logo.src} alt="" className="w-9 h-9 rounded-md object-cover" />
+    <SgdsSidebar
+      className="sspp-sidebar"
+      active={activeItem?.to ?? ""}
+      variant="collapsible"
+      scrim
+      ariaLabel={`${roleLabel || brand} navigation`}
+    >
+      <div slot="upper" className="sspp-sidebar-brand">
+        {logo?.src ? (
+          <img src={logo.src} alt="" className="sspp-sidebar-logo" />
+        ) : (
+          <div className="sspp-sidebar-mark" aria-hidden="true">S</div>
         )}
-        <div>
-          <p className="text-white text-lg font-semibold tracking-tight leading-tight">{brand}</p>
-          {roleLabel && (
-            <p className="text-[11px] tracking-wide uppercase text-[#78716C]">{roleLabel}</p>
-          )}
+        <div className="sspp-sidebar-brand-copy">
+          <strong>{brand}</strong>
+          {roleLabel && <span>{roleLabel}</span>}
         </div>
       </div>
 
-      <nav className="flex-1 px-3 space-y-1">
-        {navItems.map(({ label, to, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              [
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
-                isActive
-                  ? "bg-[#292524] text-white font-medium"
-                  : "text-[#A8A29E] hover:bg-[#292524]/60 hover:text-white",
-              ].join(" ")
-            }
-          >
-            {Icon && <Icon width={18} height={18} />}
-            {label}
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="px-3 pb-6 pt-3 border-t border-white/10 mt-3">
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm w-full text-[#A8A29E] hover:bg-[#292524]/60 hover:text-white transition-colors"
+      {navItems.map(({ label, to, icon: Icon }) => (
+        <SgdsSidebarItem
+          key={to}
+          name={to}
+          title={label}
+          onClick={() => navigate(to)}
         >
-          <LogoutIcon width={18} height={18} />
-          Logout
-        </button>
-      </div>
-    </aside>
+          {Icon && (
+            <span slot="icon" className="sspp-sidebar-icon" aria-hidden="true">
+              <Icon width={20} height={20} />
+            </span>
+          )}
+        </SgdsSidebarItem>
+      ))}
+
+      {/* Logout lives in the lower slot but is still a sidebar ITEM, so it
+          collapses to just its icon along with everything else. */}
+      <SgdsSidebarItem
+        slot="lower"
+        name="logout"
+        title="Logout"
+        className="sspp-sidebar-logout"
+        onClick={onLogout}
+      >
+        <span slot="icon" className="sspp-sidebar-icon" aria-hidden="true">
+          <LogoutIcon width={20} height={20} />
+        </span>
+      </SgdsSidebarItem>
+    </SgdsSidebar>
   );
 }

@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import Button from "../../components/common/Button";
 import Modal from "../../components/common/Modal";
 import { TextArea } from "../../components/common/Input";
 import { useModal } from "../../hooks/useModal";
+import DataTable from "../../components/common/DataTable";
 
 // Wireframe for this screen wasn't in the deck — this is a reasonable first pass.
 const QUERIES = [
@@ -25,7 +26,8 @@ export default function SupportQueriesPage() {
       />
 
       <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+        <DataTable>
+          <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-[#78716C] bg-[#FAFAF9] border-b border-[#E7E5E4]">
               <th className="px-6 py-4 font-medium">From</th>
@@ -51,6 +53,7 @@ export default function SupportQueriesPage() {
             ))}
           </tbody>
         </table>
+          </DataTable>
       </div>
 
       <Modal open={open} onClose={closeModal} title="Reply to query" subtitle={payload?.from}>
