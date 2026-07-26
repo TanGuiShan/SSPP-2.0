@@ -6,7 +6,7 @@ import {
   onSnapshot,
   writeBatch,
 } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { db } from "../services/firebase/client";
 
 const INTEREST_FORMS_COL = "interestForms";
 const MATCHES_COL = "matches";
