@@ -51,7 +51,7 @@ function friendlyError(error) {
  * client-side half.
  *
  * @param {object} params
- * @param {"school"|"army-unit"|"army-ambassador"} params.role
+ * @param {"school"|"army-unit"|"army-ambassador"|"admin"} params.role
  * @param {object} params.profile  extra fields for the users/{uid} doc
  */
 export async function signUp({

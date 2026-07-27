@@ -30,18 +30,17 @@ export const INVENTORY_CATEGORIES = [
 // `total` is the procured batch. reserved/gaveOut are DERIVED from matches at
 // runtime (see deriveStock below) — the numbers here are just the base stock.
 export const inventoryBase = [
-  { id: "inv-001", name: "Camo cream stick", category: "consumable", total: 500 },
-  { id: "inv-002", name: "SSPP sticker pack", category: "collectible", total: 1000 },
-  { id: "inv-003", name: "Army enamel pin", category: "collectible", total: 300 },
-  { id: "inv-004", name: "Keychain (tank)", category: "collectible", total: 400 },
-  { id: "inv-005", name: "Notebook A6", category: "stationery", total: 600 },
-  { id: "inv-006", name: "Ballpoint pen", category: "stationery", total: 800 },
-  { id: "inv-007", name: "Tote bag", category: "bag", total: 250 },
-  { id: "inv-008", name: "Drawstring bag", category: "bag", total: 350 },
-  { id: "inv-009", name: "Water bottle", category: "wearable", total: 200 },
-  { id: "inv-010", name: "Lanyard", category: "wearable", total: 700 },
-  { id: "inv-011", name: "SSPP wristband", category: "wearable", total: 900 },
-  { id: "inv-012", name: "Postcard set", category: "collectible", total: 450 },
+  { id: "inv-001", name: "Camo cream (Green)", category: "consumable", total: 50 },
+  { id: "inv-002", name: "Camo cream (Black)", category: "consumable", total: 50 },
+  { id: "inv-003", name: "Kids Uniform", category: "wearable", total: 15 },
+  { id: "inv-004", name: "Combat Ration", category: "consumable", total: 50 },
+  { id: "inv-005", name: "Cones", category: "stationery", total: 30 },
+  { id: "inv-006", name: "Mats", category: "stationery", total: 20 },
+  { id: "inv-007", name: "Assault bag", category: "bag", total: 20 },
+  { id: "inv-008", name: "Tunnel", category: "stationery", total: 20 },
+  { id: "inv-009", name: "Balancing Beam", category: "stationery", total: 20 },
+  { id: "inv-010", name: "Colour Pencils", category: "stationery", total: 100 },
+  { id: "inv-011", name: "ARC Banners & Brochures", category: "stationery", total: 30 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────
@@ -57,16 +56,16 @@ export const inventoryBase = [
 // (negative or small = already gave out, large = still reserved).
 // ─────────────────────────────────────────────────────────────────────
 export const DEMO_ALLOCATIONS = [
-  { itemId: "inv-001", qty: 375, daysAway: 0 },   // gave out (today)
-  { itemId: "inv-001", qty: 100, daysAway: 14 },  // reserved
-  { itemId: "inv-003", qty: 230, daysAway: 2 },   // reserved
-  { itemId: "inv-005", qty: 300, daysAway: 1 },   // gave out (<=1 day)
-  { itemId: "inv-005", qty: 160, daysAway: 20 },  // reserved
-  { itemId: "inv-007", qty: 190, daysAway: 0 },   // gave out
-  { itemId: "inv-009", qty: 150, daysAway: 1 },   // gave out
-  { itemId: "inv-011", qty: 500, daysAway: 3 },   // reserved
-  { itemId: "inv-011", qty: 180, daysAway: 0 },   // gave out
-  { itemId: "inv-002", qty: 360, daysAway: 5 },   // reserved
+  { itemId: "inv-001", qty: 37, daysAway: 0 },   // gave out (today)
+  { itemId: "inv-001", qty: 10, daysAway: 14 },  // reserved
+  { itemId: "inv-003", qty: 23, daysAway: 2 },   // reserved
+  { itemId: "inv-005", qty: 30, daysAway: 1 },   // gave out (<=1 day)
+  { itemId: "inv-005", qty: 16, daysAway: 20 },  // reserved
+  { itemId: "inv-007", qty: 19, daysAway: 0 },   // gave out
+  { itemId: "inv-009", qty: 15, daysAway: 1 },   // gave out
+  { itemId: "inv-011", qty: 50, daysAway: 3 },   // reserved
+  { itemId: "inv-011", qty: 18, daysAway: 0 },   // gave out
+  { itemId: "inv-002", qty: 36, daysAway: 5 },   // reserved
 ];
 
 /**
