@@ -150,6 +150,21 @@ export function canWithdrawVolunteer(match) {
   return daysUntil > WITHDRAW_LOCK_DAYS;
 }
 
+/**
+ * Does this interest form / match belong to the given school? The Firestore
+ * rules let any approved user READ all engagements (providers need to see open
+ * requests), so the SCHOOL views must scope to their own records client-side —
+ * otherwise a school sees every school's engagements. Prefer the stamped
+ * schoolUid; fall back to the school name for optimistic/legacy records that
+ * haven't round-tripped through Firestore yet.
+ */
+export function ownedBySchool(record, user) {
+  if (!record || !user) return false;
+  return record.schoolUid
+    ? record.schoolUid === user.uid
+    : record.school === user.schoolName;
+}
+
 export function EngagementProvider({ children }) {
   const { user } = useAuth();
 

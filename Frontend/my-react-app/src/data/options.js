@@ -9,7 +9,13 @@
 //   Tier 3 — sharing only: talk/briefing, nothing moved on site.
 // `requiresBooth` = needs physical setup at the school (T1 and T2).
 // `isHandsOn`     = needs a unit's equipment + supervision (T1 only).
-export const TIERS = [
+// DEFAULT_TIERS is the built-in definition and the fallback used before Firestore
+// loads (and in test mode, where there's no session to read it). The admin Tier
+// Config page can override these in the `tiers` collection; see hooks/useTiers.
+//   requiresBooth / isHandsOn  — LOGIC (tiersFor filters on these)
+//   maxParticipants / equipment — display metadata, admin-editable
+//   order                       — sort position
+export const DEFAULT_TIERS = [
   {
     id: "tier1",
     name: "Tier 1 — Hands-on experience",
@@ -17,6 +23,9 @@ export const TIERS = [
     description: "Students handle real equipment under supervision. Units only.",
     requiresBooth: true,
     isHandsOn: true,
+    maxParticipants: 200,
+    equipment: ["Slide deck", "Uniform display"],
+    order: 1,
   },
   {
     id: "tier2",
@@ -25,6 +34,9 @@ export const TIERS = [
     description: "Static display and equipment brought to the school.",
     requiresBooth: true,
     isHandsOn: false,
+    maxParticipants: 120,
+    equipment: ["Light strike vehicle", "Comms set", "Personal weapons"],
+    order: 2,
   },
   {
     id: "tier3",
@@ -33,8 +45,29 @@ export const TIERS = [
     description: "Talk or briefing. Nothing moved off-camp.",
     requiresBooth: false,
     isHandsOn: false,
+    maxParticipants: 60,
+    equipment: ["Simulator", "Obstacle course kit", "Field pack"],
+    order: 3,
   },
 ];
+
+// Live tier list. It's a MUTABLE COPY of the defaults so that Firestore can
+// hydrate it in place (see setTiers) — every synchronous caller of TIERS /
+// getTier / tiersFor then reads the live values without importing a hook.
+export const TIERS = DEFAULT_TIERS.map((t) => ({ ...t }));
+
+/**
+ * Replace the live tier list IN PLACE (same array reference, new contents) so
+ * existing `import { TIERS }` holders and getTier/tiersFor pick up the change.
+ * Pass an empty/falsy list to reset to the built-in defaults.
+ */
+export function setTiers(next) {
+  const list = Array.isArray(next) && next.length ? next : DEFAULT_TIERS;
+  TIERS.length = 0;
+  for (const t of [...list].sort((a, b) => (a.order ?? 99) - (b.order ?? 99))) {
+    TIERS.push(t);
+  }
+}
 
 export const getTier = (id) => TIERS.find((t) => t.id === id);
 
@@ -134,13 +167,26 @@ export function ambassadorTiers(groupSize = 1) {
 }
 
 /**
+ * Pure tier filter over an EXPLICIT list. The reactive useTiers() hook calls
+ * this with its state so pages re-render on tier edits; tiersFor() below is the
+ * same thing over the live module list, for synchronous/non-component callers.
+ */
+export function tiersForFrom(list, providerType, opts = {}) {
+  if (providerType === "ambassador") {
+    const canBooth = (opts.groupSize ?? 1) >= MIN_OFFICERS_FOR_BOOTH;
+    return list.filter((t) => !t.isHandsOn && (canBooth || !t.requiresBooth));
+  }
+  const mobility = opts.mobility ?? "sharing_booth";
+  return mobility === "sharing_booth" ? list : list.filter((t) => !t.requiresBooth);
+}
+
+/**
  * Single entry point the interest form uses.
  * @param {"unit"|"ambassador"} providerType
  * @param {{ mobility?: string, groupSize?: number }} opts
  */
 export function tiersFor(providerType, opts = {}) {
-  if (providerType === "ambassador") return ambassadorTiers(opts.groupSize ?? 1);
-  return unitTiers(opts.mobility ?? "sharing_booth");
+  return tiersForFrom(TIERS, providerType, opts);
 }
 
 // ── Army formations ───────────────────────────────────────────────────

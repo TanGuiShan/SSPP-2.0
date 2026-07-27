@@ -21,6 +21,9 @@ const ForgotPasswordPage = lazy(() => import("../pages/auth/ForgotPasswordPage")
 const VerifyEmailPage = lazy(() => import("../pages/auth/VerifyEmailPage"));
 const PendingApprovalPage = lazy(() => import("../pages/auth/PendingApprovalPage"));
 
+const ContactPage = lazy(() => import("../pages/public/ContactPage"));
+const FeedbackPage = lazy(() => import("../pages/public/FeedbackPage"));
+
 const SchoolDashboardPage = lazy(() => import("../pages/school/SchoolDashboardPage"));
 const BrowseFormationsPage = lazy(() => import("../pages/school/BrowseFormationsPage"));
 const InterestFormsPage = lazy(() => import("../pages/school/InterestFormsPage"));
@@ -68,6 +71,10 @@ export default function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/pending-approval" element={<PendingApprovalPage />} />
+
+        {/* Public utility pages — reachable from the footer by any user. */}
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/feedback" element={<FeedbackPage />} />
 
         <Route
           path="/school"

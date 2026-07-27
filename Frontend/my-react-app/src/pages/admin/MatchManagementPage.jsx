@@ -8,7 +8,8 @@ import Button from "../../components/common/Button";
 import Modal from "../../components/common/Modal";
 import { useModal } from "../../hooks/useModal";
 import { useEngagements } from "../../hooks/useEngagements";
-import { getTier, TIMING_SLOTS } from "../../data/options";
+import { TIMING_SLOTS } from "../../data/options";
+import { useTiers } from "../../hooks/useTiers";
 import TabFilter from "../../components/common/TabFilter";
 import { TAB, tabsFor, applyTab, resolveTab, TAB_PARAM } from "../../utils/tabs";
 import DataTable from "../../components/common/DataTable";
@@ -18,7 +19,7 @@ const fmtDate = (d) =>
   new Date(d).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
 
 // Shared tab definitions — same everywhere (see utils/tabs.js).
-const TABS = tabsFor([TAB.OPEN, TAB.AWAITING, TAB.CONFIRMED, TAB.CANCELLED, TAB.ALL]);
+const TABS = tabsFor([TAB.ALL, TAB.OPEN, TAB.AWAITING, TAB.CONFIRMED, TAB.CANCELLED, TAB.COMPLETED]);
 
 function DetailRow({ label, children }) {
   return (
@@ -31,6 +32,7 @@ function DetailRow({ label, children }) {
 
 export default function MatchManagementPage() {
   const { matches, resetDemo, removeVolunteer } = useEngagements();
+  const { getTier } = useTiers();
   const { open, payload, openModal, closeModal } = useModal();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState(TAB.AWAITING);

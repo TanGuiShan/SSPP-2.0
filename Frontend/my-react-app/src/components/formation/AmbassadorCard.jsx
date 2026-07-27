@@ -1,7 +1,7 @@
 import { CalendarIcon } from "../../assets/icons";
 import Button from "../common/Button";
 import { FORMATIONS, TOPICS, SCHOOL_LEVELS } from "../../data/options";
-import { formatRange } from "../../utils/filtering";
+import { formatRange, availabilityDays } from "../../utils/filtering";
 
 const labelFor = (list, value) => list.find((o) => o.value === value)?.label ?? value;
 
@@ -25,7 +25,8 @@ export default function AmbassadorCard({
   onToggleSelect,
   onInterested,
 }) {
-  const { rank, name, appointment, formation, camp, mobility, topics, levelsPreferred, about, availableFrom, availableTo, photo } = ambassador;
+  const { rank, name, appointment, formation, camp, mobility, topics, levelsPreferred, about, availableFrom, availableTo, photo, availability } = ambassador;
+  const days = availabilityDays(availability);
 
   return (
     <div
@@ -83,9 +84,25 @@ export default function AmbassadorCard({
         ))}
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-[#78716C] mt-4">
-        <CalendarIcon width={14} height={14} className="text-[#A8A29E] shrink-0" />
-        {formatRange(availableFrom, availableTo)}
+      <div className="mt-4">
+        <div className="flex items-center gap-2 text-xs text-[#78716C]">
+          <CalendarIcon width={14} height={14} className="text-[#A8A29E] shrink-0" />
+          <span className="font-medium">Available</span>
+        </div>
+        {days.length > 0 ? (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {days.slice(0, 4).map((d) => (
+              <span key={d.key} className="px-2 py-0.5 rounded bg-[#F5F5F4] text-[10px] text-[#57534E]">
+                {d.label}{d.short ? ` · ${d.short}` : ""}
+              </span>
+            ))}
+            {days.length > 4 && (
+              <span className="px-2 py-0.5 text-[10px] text-[#A8A29E]">+{days.length - 4} more</span>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-[#78716C] mt-1">{formatRange(availableFrom, availableTo)}</p>
+        )}
       </div>
 
       <p className="text-[11px] text-[#A8A29E] mt-2">

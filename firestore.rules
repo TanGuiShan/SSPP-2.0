@@ -113,6 +113,22 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Engagement tiers are public program config — the signup forms read them
+    // before anyone is signed in, so read is open. Only admins can edit.
+    match /tiers/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Feedback / contact messages. Anyone (even signed-out) may submit one with
+    // a non-empty message; only admins can read or manage the inbox. Create-only
+    // for the public — no reading others' messages, no edits after the fact.
+    match /feedback/{id} {
+      allow create: if request.resource.data.message is string
+                    && request.resource.data.message.size() > 0;
+      allow read, update, delete: if isAdmin();
+    }
+
     match /interestForms/{id} {
       allow read: if approved();
       allow create: if hasRole('school')

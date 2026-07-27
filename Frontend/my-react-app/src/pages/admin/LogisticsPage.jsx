@@ -6,17 +6,17 @@ import Modal from "../../components/common/Modal";
 import { Input } from "../../components/common/Input";
 import { useModal } from "../../hooks/useModal";
 import DataTable from "../../components/common/DataTable";
+import { useCollection } from "../../hooks/useCollection";
+import { seedInventory, restockItem } from "../../services/firebase/inventory.service";
 import {
-  deriveStock,
+  deriveStockFrom,
   DEMO_ALLOCATIONS,
-  // deriveStockFromMatches,   // TODO(real-flow): use this instead of deriveStock
   INVENTORY_CATEGORIES,
   LOW_STOCK_THRESHOLD,
   availableRatio,
   isLowStock,
   categoryLabel,
 } from "../../data/inventory";
-// import { useEngagements } from "../../hooks/useEngagements"; // TODO(real-flow)
 
 const pct = (r) => `${Math.round(r * 100)}%`;
 
@@ -27,31 +27,22 @@ function barColor(ratio) {
 }
 
 export default function LogisticsPage() {
-  // Extra stock the admin has restocked this session, keyed by item id. Added
-  // on top of the derived numbers so restock survives re-derivation.
-  const [restocked, setRestocked] = useState({});
+  // Base stock now lives in Firestore (`inventory` collection). This is a live
+  // subscription: seeding, restocking, or a console edit repaints the table.
+  const inventory = useCollection("inventory");
   const [filter, setFilter] = useState("all");
+  const [error, setError] = useState("");
+  const [seeding, setSeeding] = useState(false);
   const restockModal = useModal();
   const [restockQty, setRestockQty] = useState("");
+  const [restocking, setRestocking] = useState(false);
 
-  // ── DEMO: derive from hardcoded allocations ──────────────────────────
-  // TODO(real-flow): replace with:
-  //   const { matches } = useEngagements();
-  //   const derived = deriveStockFromMatches(matches);
-  const derived = useMemo(() => deriveStock(DEMO_ALLOCATIONS), []);
-
-  // Fold in admin restocks (adds to both total and available).
+  // reserved / gaveOut are still DERIVED from demo allocations until matches
+  // carry equipment (see data/inventory.js). `total` and `available` are real:
+  // total comes from Firestore, available = total − reserved − gaveOut.
   const items = useMemo(
-    () =>
-      derived.map((item) => {
-        const extra = restocked[item.id] ?? 0;
-        return {
-          ...item,
-          total: item.total + extra,
-          available: item.available + extra,
-        };
-      }),
-    [derived, restocked]
+    () => deriveStockFrom(inventory, DEMO_ALLOCATIONS),
+    [inventory]
   );
 
   const flaggedCount = useMemo(() => items.filter((i) => isLowStock(i)).length, [items]);
@@ -65,18 +56,37 @@ export default function LogisticsPage() {
     return [...list].sort((a, b) => availableRatio(a) - availableRatio(b));
   }, [items, filter]);
 
+  const handleSeed = async () => {
+    setError("");
+    setSeeding(true);
+    try {
+      const { added } = await seedInventory();
+      if (added === 0) setError("Inventory is already uploaded — nothing new to add.");
+    } catch (e) {
+      setError(e?.message ?? "Couldn't upload the inventory list. Are you signed in as an admin?");
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   const openRestock = (item) => {
     setRestockQty("");
     restockModal.openModal(item);
   };
 
-  const applyRestock = () => {
+  const applyRestock = async () => {
     const qty = Math.max(0, Number(restockQty) || 0);
-    const id = restockModal.payload.id;
-    if (qty > 0) {
-      setRestocked((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + qty }));
+    if (qty <= 0) return restockModal.closeModal();
+    setError("");
+    setRestocking(true);
+    try {
+      await restockItem(restockModal.payload.id, qty);
+      restockModal.closeModal();
+    } catch (e) {
+      setError(e?.message ?? "Couldn't restock. Try again.");
+    } finally {
+      setRestocking(false);
     }
-    restockModal.closeModal();
   };
 
   return (
@@ -85,7 +95,20 @@ export default function LogisticsPage() {
         eyebrow="Logistics"
         title="Incentive stock"
         subtitle="Reserved automatically from confirmed engagements — flagged under 30% available"
+        action={
+          items.length > 0 ? (
+            <Button variant="ghost" size="sm" loading={seeding} onClick={handleSeed}>
+              Sync from inventory.js
+            </Button>
+          ) : null
+        }
       />
+
+      {error && (
+        <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mb-5">
+          {error}
+        </div>
+      )}
 
       <div className="flex gap-4 flex-wrap mb-8">
         <StatCard label="Item types" value={items.length} />
@@ -140,7 +163,18 @@ export default function LogisticsPage() {
       </div>
 
       <div className="card overflow-hidden">
-        {rows.length === 0 ? (
+        {items.length === 0 ? (
+          // Empty collection: offer the one-click upload from data/inventory.js.
+          <div className="py-16 text-center">
+            <p className="text-sm text-[#78716C] mb-1">No inventory in Firestore yet.</p>
+            <p className="text-xs text-[#A8A29E] mb-5">
+              Upload the starting list from inventory.js — items that already exist are skipped.
+            </p>
+            <Button loading={seeding} onClick={handleSeed}>
+              Upload inventory list
+            </Button>
+          </div>
+        ) : rows.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-sm text-[#78716C]">
               {filter === "flagged" ? "Nothing needs restocking. All good." : "No items in this category."}
@@ -257,7 +291,7 @@ export default function LogisticsPage() {
               <Button variant="secondary" fullWidth onClick={restockModal.closeModal}>
                 Cancel
               </Button>
-              <Button fullWidth onClick={applyRestock}>
+              <Button fullWidth loading={restocking} onClick={applyRestock}>
                 Add to stock
               </Button>
             </div>

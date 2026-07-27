@@ -8,7 +8,8 @@ import Button from "../../components/common/Button";
 import { useModal } from "../../hooks/useModal";
 import { useAuth } from "../../hooks/useAuth";
 import { useEngagements, canWithdrawVolunteer } from "../../hooks/useEngagements";
-import { getTier, TIMING_SLOTS } from "../../data/options";
+import { TIMING_SLOTS } from "../../data/options";
+import { useTiers } from "../../hooks/useTiers";
 import TabFilter from "../../components/common/TabFilter";
 import { TAB, tabsFor, applyTab, resolveTab, TAB_PARAM } from "../../utils/tabs";
 
@@ -33,6 +34,7 @@ const TABS = tabsFor([TAB.AWAITING, TAB.CONFIRMED, TAB.ALL]);
 export default function ArmyMatchesPage() {
   const { user } = useAuth();
   const { matches, confirmAsUnit, confirmAsAmbassador, removeVolunteer } = useEngagements();
+  const { getTier } = useTiers();
   const { open, payload, openModal, closeModal } = useModal();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

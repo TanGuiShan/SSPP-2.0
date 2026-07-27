@@ -1,12 +1,13 @@
 import { CalendarIcon } from "../../assets/icons";
 import Button from "../common/Button";
-import { TOPICS, SCHOOL_LEVELS } from "../../data/options";
-import { formatRange } from "../../utils/filtering";
+import { FORMATIONS, TOPICS, SCHOOL_LEVELS } from "../../data/options";
+import { formatRange, availabilityDays } from "../../utils/filtering";
 
 const labelFor = (list, value) => list.find((o) => o.value === value)?.label ?? value;
 
 export default function FormationCard({ formation, onInterested }) {
-  const { name, location, availableFrom, availableTo, image, badge, mobility, topics = [], levelsPreferred = [] } = formation;
+  const { name, location, formation: formationKey, availableFrom, availableTo, image, badge, mobility, topics = [], levelsPreferred = [], availability } = formation;
+  const days = availabilityDays(availability);
 
   return (
     <div className="card overflow-hidden flex flex-col">
@@ -31,7 +32,12 @@ export default function FormationCard({ formation, onInterested }) {
       </div>
 
       <div className="p-5 flex flex-col flex-1">
-        <h3 className="text-lg font-semibold text-[#1C1917]">{name}</h3>
+        {formationKey && (
+          <p className="text-[11px] uppercase tracking-wide text-[#A8A29E] mb-0.5">
+            {labelFor(FORMATIONS, formationKey)}
+          </p>
+        )}
+        <h3 className="text-lg font-semibold text-[#1C1917]"> {name}</h3>
         <p className="text-sm text-[#78716C] mt-0.5">{location}</p>
 
         {topics.length > 0 && (
@@ -44,11 +50,24 @@ export default function FormationCard({ formation, onInterested }) {
           </div>
         )}
 
-        <div className="flex items-center gap-2 text-sm text-[#44403C] mt-3 mb-2">
-          <CalendarIcon width={16} height={16} className="text-[#A8A29E] shrink-0" />
-          <div>
+        <div className="flex items-start gap-2 text-sm text-[#44403C] mt-3 mb-2">
+          <CalendarIcon width={16} height={16} className="text-[#A8A29E] shrink-0 mt-0.5" />
+          <div className="min-w-0">
             <p className="font-medium text-xs">Available</p>
-            <p className="text-[#78716C] text-xs">{formatRange(availableFrom, availableTo)}</p>
+            {days.length > 0 ? (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {days.slice(0, 3).map((d) => (
+                  <span key={d.key} className="px-2 py-0.5 rounded bg-[#F5F5F4] text-[10px] text-[#57534E]">
+                    {d.label}{d.short ? ` · ${d.short}` : ""}
+                  </span>
+                ))}
+                {days.length > 3 && (
+                  <span className="px-2 py-0.5 text-[10px] text-[#A8A29E]">+{days.length - 3} more</span>
+                )}
+              </div>
+            ) : (
+              <p className="text-[#78716C] text-xs">{formatRange(availableFrom, availableTo)}</p>
+            )}
           </div>
         </div>
 

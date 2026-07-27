@@ -13,13 +13,13 @@ import { approveUser, rejectUser } from "../../services/firebase/profile.service
 // Government (.gov.sg/.edu.sg) domains are auto-approved at signup; everyone
 // else lands here as Pending until an admin acts.
 
-const FILTERS = ["Pending", "Approved", "Rejected", "All"];
+const FILTERS = ["All", "Pending", "Approved", "Rejected"];
 
 const ROLE_LABEL = {
   school: "School",
   "army-unit": "Army unit",
   "army-ambassador": "Army ambassador",
-  admin: "admin",
+  admin: "Admin",
 };
 const roleLabel = (r) => ROLE_LABEL[r] ?? r ?? "—";
 
@@ -54,7 +54,7 @@ const displayName = (u) =>
 
 export default function UserManagementPage() {
   const users = useCollection("users");
-  const [filter, setFilter] = useState("Pending");
+  const [filter, setFilter] = useState("All");
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
 

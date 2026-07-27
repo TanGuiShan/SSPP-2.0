@@ -32,15 +32,15 @@ export const INVENTORY_CATEGORIES = [
 export const inventoryBase = [
   { id: "inv-001", name: "Camo cream (Green)", category: "consumable", total: 50 },
   { id: "inv-002", name: "Camo cream (Black)", category: "consumable", total: 50 },
-  { id: "inv-003", name: "Kids Uniform", category: "wearable", total: 15 },
+  { id: "inv-003", name: "Kids Uniform", category: "wearable", total: 50 },
   { id: "inv-004", name: "Combat Ration", category: "consumable", total: 50 },
-  { id: "inv-005", name: "Cones", category: "stationery", total: 30 },
+  { id: "inv-005", name: "Cones", category: "stationery", total: 50 },
   { id: "inv-006", name: "Mats", category: "stationery", total: 20 },
   { id: "inv-007", name: "Assault bag", category: "bag", total: 20 },
   { id: "inv-008", name: "Tunnel", category: "stationery", total: 20 },
   { id: "inv-009", name: "Balancing Beam", category: "stationery", total: 20 },
   { id: "inv-010", name: "Colour Pencils", category: "stationery", total: 100 },
-  { id: "inv-011", name: "ARC Banners & Brochures", category: "stationery", total: 30 },
+  { id: "inv-011", name: "ARC Banners & Brochures", category: "stationery", total: 100 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────
@@ -77,7 +77,16 @@ export const DEMO_ALLOCATIONS = [
  * @param {{itemId, qty, daysAway}[]} allocations
  */
 export function deriveStock(allocations = DEMO_ALLOCATIONS) {
-  return inventoryBase.map((item) => {
+  return deriveStockFrom(inventoryBase, allocations);
+}
+
+/**
+ * Same derivation as deriveStock, but over an ARBITRARY base list — e.g. the
+ * live `inventory` collection from Firestore instead of the hardcoded
+ * inventoryBase. Each base item needs { id, name, category, total }.
+ */
+export function deriveStockFrom(baseItems = [], allocations = DEMO_ALLOCATIONS) {
+  return baseItems.map((item) => {
     let reserved = 0;
     let gaveOut = 0;
     for (const a of allocations) {
@@ -85,7 +94,7 @@ export function deriveStock(allocations = DEMO_ALLOCATIONS) {
       if (a.daysAway <= GIVE_OUT_LEAD_DAYS) gaveOut += a.qty;
       else reserved += a.qty;
     }
-    const available = Math.max(0, item.total - reserved - gaveOut);
+    const available = Math.max(0, (item.total ?? 0) - reserved - gaveOut);
     return { ...item, reserved, gaveOut, available };
   });
 }

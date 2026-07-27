@@ -15,8 +15,8 @@ import {
   SCHOOL_LEVELS,
   RANKS,
   TOPICS,
-  tiersFor,
 } from "../../data/options";
+import { useTiers } from "../../hooks/useTiers";
 
 // Real army units a signing-up account can claim as its identity. The chosen
 // id is stored on the profile and reserved in providers/{id}, so later a match
@@ -26,6 +26,7 @@ const UNIT_OPTIONS = formations.map((f) => ({ value: f.id, label: f.name }));
 export default function UnitSignupPage() {
   const navigate = useNavigate();
   const { signup } = useAuth();
+  const { tiersFor } = useTiers();
 
   const { values, handleChange, setField } = useForm({
     mobility: "",
