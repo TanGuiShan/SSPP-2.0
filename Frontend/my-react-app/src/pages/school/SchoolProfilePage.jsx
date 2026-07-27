@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import { Input, Select } from "../../components/common/Input";
 import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
@@ -7,6 +7,10 @@ import Button from "../../components/common/Button";
 import Modal from "../../components/common/Modal";
 import { useForm } from "../../hooks/useForm";
 import { useModal } from "../../hooks/useModal";
+import { useAuth } from "../../hooks/useAuth";
+import { updateProfile } from "../../services/firebase/profile.service";
+import { TEST_MODE } from "../../config/testMode";
+import AvatarUpload from "../../components/common/AvatarUpload";
 import {
   MOBILITY_OPTIONS,
   FORMATIONS,
@@ -14,19 +18,41 @@ import {
 } from "../../data/options";
 
 export default function SchoolProfilePage() {
-  // Mirrors the fields collected in SchoolSignupPage — same shape, so this can
-  // be swapped to load from the API without restructuring.
-  const { values, handleChange, setField } = useForm({
-    mobility: "sharing_booth",
-    fullName: "Tan Gui Shan",
-    appointment: "hod",
-    email: "tan_guishan@swisscottage.edu.sg",
-    mobile: "+65 9123 4567",
-    schoolName: "Swiss Cottage Secondary School",
-    address: "3 Bukit Batok Street 34",
-    postalCode: "659322",
-    unitsPreferred: ["armoured", "infantry", "signal"],
+  const { user, applyProfileChanges } = useAuth();
+
+  // Starts empty and is filled from the signed-in user's Firestore profile
+  // once it loads (see the effect below). Field names mirror SchoolSignupPage.
+  const { values, handleChange, setField, setValues } = useForm({
+    mobility: "",
+    fullName: "",
+    appointment: "",
+    email: "",
+    mobile: "",
+    schoolName: "",
+    address: "",
+    postalCode: "",
+    unitsPreferred: [],
+    photoURL: "",
   });
+
+  // Populate the form from the user's saved profile when it arrives.
+  useEffect(() => {
+    if (!user) return;
+    setValues((v) => ({
+      ...v,
+      mobility: user.mobility ?? v.mobility,
+      fullName: user.fullName ?? "",
+      appointment: user.appointment ?? "",
+      email: user.email ?? "",
+      mobile: user.mobile ?? "",
+      schoolName: user.schoolName ?? "",
+      address: user.address ?? "",
+      postalCode: user.postalCode ?? "",
+      unitsPreferred: user.unitsPreferred ?? [],
+      photoURL: user.photoURL ?? "",
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   // Contact details arrive already verified — editing either revokes the tick
   // and forces a re-verify, so an account can't end up with an unverified
@@ -38,7 +64,7 @@ export default function SchoolProfilePage() {
   const [error, setError] = useState("");
   const deleteModal = useModal();
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
 
     if (!emailVerified) return setError("Re-verify your email before saving.");
@@ -48,28 +74,51 @@ export default function SchoolProfilePage() {
 
     setError("");
 
-    // ── REAL (uncomment when the backend is ready) ────────────────────
-    // await updateSchoolProfile(values);
+    // updateProfile ignores role, approval and email (those can't change here).
+    const changes = {
+      mobility: values.mobility,
+      fullName: values.fullName,
+      appointment: values.appointment,
+      mobile: values.mobile,
+      schoolName: values.schoolName,
+      address: values.address,
+      postalCode: values.postalCode,
+      unitsPreferred: values.unitsPreferred,
+      photoURL: values.photoURL,
+    };
 
-    // ── DEMO ─────────────────────────────────────────────────────────
-    console.log("Saved school profile", values);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-    window.scrollTo({ top: 0, behavior: "smooth"}); // Scroll to the top so the "Profile saved" message is visible
+    try {
+      // Persist to Firestore (test mode has no real account, so it skips the
+      // write), then update the in-memory user so the change shows right away.
+      if (!TEST_MODE && user?.uid) {
+        await updateProfile(user.uid, changes);
+      }
+      applyProfileChanges(changes);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      window.scrollTo({ top: 0, behavior: "smooth" }); // show the "Profile saved" message
+    } catch (err) {
+      setError(err.message ?? "Could not save your profile. Please try again.");
+    }
   };
 
   return (
     <>
       <PageHeader
         eyebrow="Profile"
-        title="School account details"
+        title="School profile"
         subtitle="Details an admin uses to follow up on engagements"
-        // action={<Button onClick={handleSave}>Save changes</Button>}
+        action={<Button onClick={handleSave}>Save changes</Button>}
       />
 
       {saved && (
-        <div className="rounded-lg bg-[#DCFCE7] text-[#15803D] px-4 py-3 text-sm mb-5 max-w-2xl">
+        <div className="rounded-lg bg-[#DCFCE7] text-[#15803D] px-4 py-3 text-sm mb-5">
           Profile saved.
+        </div>
+      )}
+      {error && (
+        <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mb-5">
+          {error}
         </div>
       )}
 
@@ -79,27 +128,38 @@ export default function SchoolProfilePage() {
             School details
           </h2>
 
-          <Input
-            label="School name"
-            required
-            value={values.schoolName}
-            onChange={handleChange("schoolName")}
-          />
-          <Input
-            label="School address"
-            required
-            value={values.address}
-            onChange={handleChange("address")}
-          />
-          <Input
-            label="Postal code"
-            required
-            inputMode="numeric"
-            maxLength={6}
-            value={values.postalCode}
-            onChange={handleChange("postalCode")}
-            className="max-w-[180px]"
-          />
+          <div className="flex flex-col md:flex-row gap-8">
+            <AvatarUpload
+              value={values.photoURL}
+              onChange={(url) => setField("photoURL", url)}
+              shape="square"
+              label="Change logo"
+              fallback="School logo"
+            />
+
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-6">
+              <Input
+                label="School name"
+                required
+                value={values.schoolName}
+                onChange={handleChange("schoolName")}
+              />
+              <Input
+                label="School address"
+                required
+                value={values.address}
+                onChange={handleChange("address")}
+              />
+              <Input
+                label="Postal code"
+                required
+                inputMode="numeric"
+                maxLength={6}
+                value={values.postalCode}
+                onChange={handleChange("postalCode")}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="card p-8 mb-5">
@@ -173,17 +233,6 @@ export default function SchoolProfilePage() {
           />
         </div>
 
-        {error && (
-          <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mb-5">
-            {error}
-          </div>
-        )}
-
-        <Button type="submit" fullWidth size="lg"
-          onclick={handleSave}
-        >
-          Save changes
-        </Button>
       </form>
 
       <div className="card p-8 mt-5 max-w border-[#F5C6C6]">

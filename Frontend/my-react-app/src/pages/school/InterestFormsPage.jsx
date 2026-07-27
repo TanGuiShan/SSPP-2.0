@@ -31,7 +31,8 @@ function DetailRow({ label, children }) {
 }
 
 export default function InterestFormsPage() {
-  const { interestForms, matches, withdrawInterest, updateOpenRequest } = useEngagements();
+  const { interestForms, matches, withdrawInterest, updateOpenRequest, confirmVolunteer } =
+    useEngagements();
   const { open, payload, openModal, closeModal } = useModal();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState(TAB.ALL);
@@ -231,6 +232,50 @@ export default function InterestFormsPage() {
                       Edit request
                     </Button>
                   )}
+                </div>
+              );
+            })()}
+
+            {/* Volunteers for an open request — the school picks who it wants. */}
+            {payload.isOpen && (() => {
+              const match = matches.find((m) => m.id === payload.matchId);
+              const roster = match?.roster ?? [];
+              if (roster.length === 0) return null;
+              const need = match.volunteersNeeded ?? 1;
+              const confirmedCount = roster.filter((r) => r.confirmed).length;
+              return (
+                <div className="mt-6">
+                  <p className="text-[11px] uppercase tracking-wide text-[#A8A29E] mb-2">
+                    Volunteers — choose who you want ({confirmedCount}/{need} confirmed)
+                  </p>
+                  <div className="space-y-2">
+                    {roster.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-[#E7E5E4] px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm text-[#1C1917] truncate">
+                            {r.rank ? `${r.rank} ${r.name}` : r.name}
+                          </p>
+                          {(r.appointment || r.location) && (
+                            <p className="text-xs text-[#78716C] truncate">
+                              {r.appointment || r.location}
+                            </p>
+                          )}
+                        </div>
+                        {r.confirmed ? (
+                          <span className="text-xs text-[#15803D] font-medium shrink-0">Chosen ✓</span>
+                        ) : confirmedCount >= need ? (
+                          <span className="text-xs text-[#A8A29E] shrink-0">Full</span>
+                        ) : (
+                          <Button size="sm" onClick={() => confirmVolunteer(payload.matchId, r.id)}>
+                            Choose
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })()}

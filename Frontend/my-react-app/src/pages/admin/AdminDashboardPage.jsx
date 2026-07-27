@@ -4,9 +4,8 @@ import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/common/StatCard";
 import TargetSummary from "../../components/common/TargetSummary";
 import { useEngagements, isEscalated, slotsRemaining } from "../../hooks/useEngagements";
-import { formations } from "../../data/formations";
-import { ambassadors } from "../../data/ambassadors";
-import { schoolCountsByLevel, onboardSchools } from "../../data/schools";
+import { useCollection, useCollectionWhere } from "../../hooks/useCollection";
+import { schools } from "../../data/schools";
 import { SCHOOL_LEVELS } from "../../data/options";
 import { TAB, linkToTab } from "../../utils/tabs";
 import DataTable from "../../components/common/DataTable";
@@ -24,9 +23,22 @@ export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const { interestForms, matches, assignProvider } = useEngagements();
 
+  // Same live Firestore catalogs the school Browse reads, so the Units and
+  // Ambassadors counts (and the assign-provider dropdown) match Browse exactly.
+  const formations = useCollection("formations");
+  const ambassadors = useCollection("ambassadors");
+
+  // Real school accounts that have signed up (users where role == "school").
+  const schoolAccounts = useCollectionWhere("users", "role", "==", "school");
+
   const stats = useMemo(() => {
-    const onboarded = onboardSchools();
-    const levelCounts = schoolCountsByLevel();
+    // Onboarded = master-roster schools that have a real account (matched by
+    // name); the rest of the roster is "yet to onboard".
+    const onboardedNames = new Set(
+      schoolAccounts.map((a) => (a.schoolName || "").trim()).filter(Boolean)
+    );
+    const onboarded = schools.filter((s) => onboardedNames.has(s.name));
+    const yetToOnboard = schools.filter((s) => !onboardedNames.has(s.name));
 
     const approvedMatches = matches.filter((m) => m.status === "Confirmed");
     const pendingForms = interestForms.filter((f) => f.status === "Awaiting confirmation");
@@ -83,7 +95,7 @@ export default function AdminDashboardPage() {
     return {
       escalatedRequests,
       onboardedCount: onboarded.length,
-      levelCounts,
+      yetToOnboardCount: yetToOnboard.length,
       matchedRequests,
       yetToMatchRequests,
       matchedSchools,
@@ -94,7 +106,7 @@ export default function AdminDashboardPage() {
       upcoming,
       completionRate,
     };
-  }, [interestForms, matches]);
+  }, [interestForms, matches, schoolAccounts]);
 
   return (
     <>
@@ -114,7 +126,15 @@ export default function AdminDashboardPage() {
         <StatCard
           label="Schools onboard"
           value={stats.onboardedCount}
-          hint="View list by level"
+          valueColor="#16A34A"
+          hint="Registered accounts"
+          onClick={() => navigate("/admin/schools")}
+        />
+        <StatCard
+          label="Yet to onboard"
+          value={stats.yetToOnboardCount}
+          valueColor="#EA580C"
+          hint="No account yet"
           onClick={() => navigate("/admin/schools")}
         />
         <StatCard label="Ambassadors" value={ambassadors.length} />

@@ -5,6 +5,7 @@ import Button from "../../components/common/Button";
 import { Input } from "../../components/common/Input";
 import { RadioCards } from "../../components/common/MultiSelect";
 import { useAuth } from "../../hooks/useAuth";
+import { TEST_MODE } from "../../config/testMode";
 
 const HOME_BY_ROLE = {
   school: "/school/dashboard",
@@ -25,15 +26,36 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [role, setRole] = useState("school");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const update = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    login({ email: form.email, role });
-    navigate(HOME_BY_ROLE[role]);
+    setError("");
+    setSubmitting(true);
+    try {
+      // In test mode `login` ignores the password and uses the picked role; in
+      // real mode it signs in with Firebase and returns the true role from the
+      // user's profile. Navigating by the RETURNED role covers both.
+      const signedInUser = await login({
+        email: form.email,
+        password: form.password,
+        role,
+      });
+      if (signedInUser?.approved === false) {
+        navigate("/pending-approval");
+        return;
+      }
+      navigate(HOME_BY_ROLE[signedInUser?.role] ?? "/school/dashboard");
+    } catch (err) {
+      setError(err.message ?? "Could not sign in. Check your email and password.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -64,16 +86,24 @@ export default function LoginPage() {
           required
         />
 
-        <RadioCards
-          label="Sign in as"
-          options={DEMO_ROLES}
-          value={role}
-          onChange={setRole}
-          name="demo-role"
-        />
+        {TEST_MODE && (
+          <RadioCards
+            label="Sign in as (test mode)"
+            options={DEMO_ROLES}
+            value={role}
+            onChange={setRole}
+            name="demo-role"
+          />
+        )}
 
-        <Button type="submit" fullWidth size="lg">
-          Sign in
+        {error && (
+          <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mb-5">
+            {error}
+          </div>
+        )}
+
+        <Button type="submit" fullWidth size="lg" loading={submitting} disabled={submitting}>
+          {submitting ? "Signing in…" : "Sign in"}
         </Button>
       </form>
 
@@ -87,9 +117,11 @@ export default function LoginPage() {
         Create an account
       </Button>
 
-      <p className="mt-6 text-center text-xs text-[var(--color-text-muted)]">
-        Demo role selection will be removed when backend authentication returns the user role.
-      </p>
+      {TEST_MODE && (
+        <p className="mt-6 text-center text-xs text-[var(--color-text-muted)]">
+          Demo role selection is shown only in test mode; real sign-in uses your account's role.
+        </p>
+      )}
     </AuthLayout>
   );
 }

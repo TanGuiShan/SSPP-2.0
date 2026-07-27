@@ -7,8 +7,8 @@ import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
-import { accountTier } from "../../utils/domain";
-import { SKIP_DOMAIN_CHECK } from "../../config/testMode";
+import { useAuth } from "../../hooks/useAuth";
+import { formations } from "../../data/formations";
 import {
   UNIT_MOBILITY_OPTIONS,
   FORMATIONS,
@@ -18,8 +18,14 @@ import {
   tiersFor,
 } from "../../data/options";
 
+// Real army units a signing-up account can claim as its identity. The chosen
+// id is stored on the profile and reserved in providers/{id}, so later a match
+// whose roster contains that id can be confirmed by this account.
+const UNIT_OPTIONS = formations.map((f) => ({ value: f.id, label: f.name }));
+
 export default function UnitSignupPage() {
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const { values, handleChange, setField } = useForm({
     mobility: "",
@@ -28,6 +34,7 @@ export default function UnitSignupPage() {
     appointment: "",
     unit:"",
     formation: "",
+    catalogUnitId: "",
     topics: [],
     email: "",
     mobile: "",
@@ -44,10 +51,11 @@ export default function UnitSignupPage() {
   // what picking each mobility option actually means for them.
   const unlockedTiers = values.mobility ? tiersFor("unit", { mobility: values.mobility }) : [];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!values.mobility) return setError("Choose what your unit can offer.");
+    if (!values.catalogUnitId) return setError("Select which unit you are registering.");
     if (!emailVerified) return setError("Verify your email before continuing.");
     if (!mobileVerified) return setError("Verify your mobile number before continuing.");
     if (values.topics.length === 0) return setError("Pick at least one topic of interest.");
@@ -57,17 +65,34 @@ export default function UnitSignupPage() {
 
     setError("");
 
-    // ── REAL (uncomment when the backend is ready) ────────────────────
-    // await registerUnit({ ...values, emailVerified, mobileVerified });
-
-    // ── DEMO ─────────────────────────────────────────────────────────
-    console.log("Unit signup", values);
-
-    // Gov domains (*.gov.sg / *.edu.sg) get in straight away. Volunteers from
-    // any other domain verify, then wait for admin approval.
-    // ── REAL: the backend decides this and refuses a session until approved.
-    const tier = SKIP_DOMAIN_CHECK ? "gov" : accountTier(values.email);
-    navigate(tier === "gov" ? "/login" : "/pending-approval");
+    try {
+      // Creates the Firebase account + users/{uid} profile, and claims the
+      // chosen unit id in providers/{id}. Gov domains are approved on the spot;
+      // other domains land on the pending-approval screen.
+      const result = await signup({
+        email: values.email,
+        password: values.password,
+        role: "army-unit",
+        providerId: values.catalogUnitId,
+        providerKind: "unit",
+        providerName:
+          formations.find((f) => f.id === values.catalogUnitId)?.name ?? values.unit,
+        profile: {
+          fullName: values.fullName,
+          rank: values.rank,
+          appointment: values.appointment,
+          unit: values.unit,
+          formation: values.formation,
+          mobility: values.mobility,
+          topics: values.topics,
+          levelsPreferred: values.levelsPreferred,
+          mobile: values.mobile,
+        },
+      });
+      navigate(result?.approved ? "/login" : "/pending-approval");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -143,6 +168,15 @@ export default function UnitSignupPage() {
               options={FORMATIONS}
               value={values.formation}
               onChange={handleChange("formation")}
+            />
+            <Select
+              label="Which unit are you registering?"
+              required
+              placeholder="Select your unit"
+              options={UNIT_OPTIONS}
+              value={values.catalogUnitId}
+              onChange={handleChange("catalogUnitId")}
+              hintText="Links your account to the unit schools book. One account per unit."
             />
           </div>
 

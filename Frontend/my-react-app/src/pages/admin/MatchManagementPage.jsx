@@ -30,7 +30,7 @@ function DetailRow({ label, children }) {
 }
 
 export default function MatchManagementPage() {
-  const { matches, resetDemo } = useEngagements();
+  const { matches, resetDemo, removeVolunteer } = useEngagements();
   const { open, payload, openModal, closeModal } = useModal();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState(TAB.AWAITING);
@@ -147,6 +147,39 @@ export default function MatchManagementPage() {
             <div className="h-px bg-[#E7E5E4] my-6" />
 
             <EngagementRoster match={liveMatch} />
+
+            {/* Admin-only: providers can't withdraw once volunteered, so this is
+                the only place a volunteer can be pulled from a request. */}
+            {(liveMatch.roster?.length ?? 0) > 0 && (
+              <div className="mt-6">
+                <p className="text-[11px] uppercase tracking-wide text-[#A8A29E] mb-2">
+                  Remove a volunteer (admin only)
+                </p>
+                <div className="space-y-2">
+                  {liveMatch.roster.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-[#E7E5E4] px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm text-[#1C1917] truncate">
+                          {r.rank ? `${r.rank} ${r.name}` : r.name}
+                        </p>
+                        <p className="text-xs text-[#78716C]">
+                          {r.confirmed ? "Confirmed" : "Volunteered"}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => removeVolunteer(liveMatch.id, r.id)}
+                        className="text-xs text-[#B91C1C] hover:underline shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mt-8">
               <Button variant="secondary" fullWidth onClick={closeModal}>

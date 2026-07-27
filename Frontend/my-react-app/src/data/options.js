@@ -72,6 +72,38 @@ export const UNIT_MOBILITY_OPTIONS = [
   }
 ];
 
+// Engagement types, used as a MULTI-select at sign-up (a unit can offer more
+// than one; a school can request more than one). Same three concepts as the
+// tiers above: sharing (T3), sharing + booth (T2), hands-on (T1).
+export const ENGAGEMENT_TYPES = [
+  {
+    value: "sharing",
+    label: "Sharing only",
+    description: "Talks and briefings. No equipment brought to the school.",
+  },
+  {
+    value: "sharing_booth",
+    label: "Sharing + booth setup",
+    description: "Talks plus a static display or equipment on site.",
+  },
+  {
+    value: "hands_on",
+    label: "Hands-on experience",
+    description: "Students handle real equipment under supervision.",
+  },
+];
+
+// Younger students can't do hands-on with real equipment, so kindergarten,
+// primary and secondary schools may only request sharing / sharing + booth.
+// JC, Polytechnic and ITE can request all three.
+const HANDS_ON_LEVELS = ["jc", "poly", "ite"];
+
+export function engagementTypesForLevel(level) {
+  return HANDS_ON_LEVELS.includes(level)
+    ? ENGAGEMENT_TYPES
+    : ENGAGEMENT_TYPES.filter((t) => t.value !== "hands_on");
+}
+
 // ── Provider ceilings ─────────────────────────────────────────────────
 // Hands-on (T1) is units-only — ambassadors don't hold tanks or weapons, units
 // do. So an ambassador (or any ambassador team) tops out at Tier 2, and only

@@ -19,7 +19,7 @@ import {
   EmailAuthProvider,
 } from "firebase/auth";
 import { auth } from "./client";
-import { createProfile, getProfile } from "./profile.service";
+import { createProfile, getProfile, claimProvider } from "./profile.service";
 import { accountTier } from "../../utils/domain";
 
 /**
@@ -54,19 +54,67 @@ function friendlyError(error) {
  * @param {"school"|"army-unit"|"army-ambassador"} params.role
  * @param {object} params.profile  extra fields for the users/{uid} doc
  */
-export async function signUp({ email, password, role, profile = {} }) {
+export async function signUp({
+  email,
+  password,
+  role,
+  providerId,
+  providerKind,
+  providerName,
+  profile = {},
+}) {
+  // Track the auth account so we can roll it back if a later step fails.
+  let createdUser = null;
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
+    createdUser = cred.user;
     const { uid } = cred.user;
 
-    // Firebase sends this for free — no email provider needed.
-    await sendEmailVerification(cred.user);
+    // Firebase sends this for free — no email provider needed. Non-fatal: a
+    // failed verification email must not abort an otherwise-successful signup.
+    try {
+      await sendEmailVerification(cred.user);
+    } catch {
+      /* ignore — the user can resend from the app */
+    }
+
+    // Providers link to a catalog identity so the security rules can tie a
+    // match's roster to an account. Units claim an existing catalog id;
+    // ambassadors are new individuals, so they own their own uid.
+    let resolvedProviderId = providerId;
+    if (!resolvedProviderId && providerKind === "ambassador") {
+      resolvedProviderId = uid;
+    }
+    if (resolvedProviderId) {
+      await claimProvider(resolvedProviderId, {
+        ownerUid: uid,
+        kind: providerKind ?? null,
+        name: providerName ?? "",
+      });
+    }
 
     const approved = accountTier(email) === "gov";
-    await createProfile(uid, { email, role, approved, ...profile });
+    await createProfile(uid, {
+      email,
+      role,
+      approved,
+      ...(resolvedProviderId ? { providerId: resolvedProviderId, providerKind } : {}),
+      ...profile,
+    });
 
-    return { uid, email, role, approved, emailVerified: false };
+    return { uid, email, role, approved, emailVerified: false, providerId: resolvedProviderId };
   } catch (error) {
+    // If the auth account was created but claiming or profile-creation failed,
+    // delete it so the email isn't locked to a broken (profile-less) account
+    // and the user can try again cleanly. If createUser itself failed (e.g.
+    // email already in use), createdUser is null and there's nothing to undo.
+    if (createdUser) {
+      try {
+        await createdUser.delete();
+      } catch {
+        /* best effort — an orphan may still need manual cleanup in the console */
+      }
+    }
     throw friendlyError(error);
   }
 }

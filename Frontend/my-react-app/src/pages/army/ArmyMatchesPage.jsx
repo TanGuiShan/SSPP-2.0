@@ -7,7 +7,7 @@ import Modal from "../../components/common/Modal";
 import Button from "../../components/common/Button";
 import { useModal } from "../../hooks/useModal";
 import { useAuth } from "../../hooks/useAuth";
-import { useEngagements } from "../../hooks/useEngagements";
+import { useEngagements, canWithdrawVolunteer } from "../../hooks/useEngagements";
 import { getTier, TIMING_SLOTS } from "../../data/options";
 import TabFilter from "../../components/common/TabFilter";
 import { TAB, tabsFor, applyTab, resolveTab, TAB_PARAM } from "../../utils/tabs";
@@ -32,7 +32,7 @@ const TABS = tabsFor([TAB.AWAITING, TAB.CONFIRMED, TAB.ALL]);
 
 export default function ArmyMatchesPage() {
   const { user } = useAuth();
-  const { matches, confirmAsUnit, confirmAsAmbassador } = useEngagements();
+  const { matches, confirmAsUnit, confirmAsAmbassador, removeVolunteer } = useEngagements();
   const { open, payload, openModal, closeModal } = useModal();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -57,13 +57,13 @@ export default function ArmyMatchesPage() {
   const myProviderName =
     user?.fullName ?? user?.schoolName ?? (isAmbassador ? "You" : "Your unit");
 
-  // Matches that involve this provider kind (exclude cancelled).
+  // Matches this provider is actually on (in the roster), excluding cancelled.
   const relevant = useMemo(
     () =>
       matches.filter(
-        (m) => m.status !== "Cancelled" && m.roster?.some((r) => r.kind === providerKind)
+        (m) => m.status !== "Cancelled" && m.roster?.some((r) => r.id === myProviderId)
       ),
-    [matches, providerKind]
+    [matches, myProviderId]
   );
 
   // Open requests this provider could volunteer for. A school posts these
@@ -92,9 +92,17 @@ export default function ArmyMatchesPage() {
     [relevant, activeTab]
   );
 
-  // For the drawer: the roster members of this kind that still need confirming.
+  // For the drawer: only THIS provider's own still-unconfirmed roster entry.
+  // A unit is a single roster member of its kind; an ambassador must match
+  // their own providerId so they can never act on another volunteer's entry.
   const pendingMine = (m) =>
-    (m?.roster ?? []).filter((r) => r.kind === providerKind && !r.confirmed);
+    (m?.roster ?? []).filter((r) =>
+      r.confirmed
+        ? false
+        : providerKind === "unit"
+        ? r.kind === "unit"
+        : r.id === myProviderId
+    );
 
   const handleConfirm = (m, memberId) => {
     if (providerKind === "unit") confirmAsUnit(m.id);
@@ -152,8 +160,9 @@ export default function ArmyMatchesPage() {
         </div>
       ) : (
         rows.map((m) => {
-          const mine = pendingMine(m);
-          const needsMe = mine.length > 0;
+          // Open requests are school-confirmed, so providers never "confirm"
+          // them — they just show as volunteered until the school decides.
+          const needsMe = !m.isOpen && pendingMine(m).length > 0;
           return (
             <button
               key={m.id}
@@ -168,11 +177,15 @@ export default function ArmyMatchesPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                {needsMe && (
+                {m.isOpen && m.status !== "Confirmed" ? (
+                  <span className="px-2.5 py-1 rounded-full bg-[#F5F5F4] text-[#57534E] text-xs font-medium">
+                    Volunteered
+                  </span>
+                ) : needsMe ? (
                   <span className="px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#B45309] text-xs font-medium">
                     {isAmbassador ? "Confirm attendance" : "Confirm"}
                   </span>
-                )}
+                ) : null}
                 <StatusBadge status={m.status} />
               </div>
             </button>
@@ -206,24 +219,52 @@ export default function ArmyMatchesPage() {
 
             <EngagementRoster match={liveMatch} />
 
-            {/* Confirm actions for this provider's still-unconfirmed members */}
-            {pendingMine(liveMatch).length > 0 && (
-              <div className="mt-6 space-y-2">
-                {providerKind === "unit" ? (
-                  <Button fullWidth onClick={() => handleConfirm(liveMatch)}>
-                    Confirm engagement
+            {/* Open requests are confirmed by the SCHOOL, so this is read-only
+                for providers: they see who volunteered but can't confirm or
+                withdraw. Direct-interest matches keep provider self-confirm. */}
+            {liveMatch.isOpen ? (
+              <div className="mt-6 space-y-3">
+                {liveMatch.status !== "Confirmed" && (
+                  <div className="rounded-lg bg-[#FEF3C7] text-[#B45309] px-4 py-3 text-sm">
+                    You've volunteered. The school will confirm which volunteers it wants.
+                  </div>
+                )}
+                {canWithdrawVolunteer(liveMatch) ? (
+                  <Button
+                    variant="danger"
+                    fullWidth
+                    onClick={() => {
+                      removeVolunteer(liveMatch.id, myProviderId);
+                      closeModal();
+                    }}
+                  >
+                    Withdraw from this request
                   </Button>
                 ) : (
-                  pendingMine(liveMatch).map((r) => (
-                    <Button key={r.id} fullWidth onClick={() => handleConfirm(liveMatch, r.id)}>
-                      Confirm attendance — {r.rank} {r.name}
-                    </Button>
-                  ))
+                  <p className="text-xs text-[#78716C] text-center">
+                    You can't withdraw within a month of the event — contact an admin to be removed.
+                  </p>
                 )}
-                <p className="text-xs text-[#78716C] text-center">
-                  Confirming locks you in for this engagement. It can't be undone here.
-                </p>
               </div>
+            ) : (
+              pendingMine(liveMatch).length > 0 && (
+                <div className="mt-6 space-y-2">
+                  {providerKind === "unit" ? (
+                    <Button fullWidth onClick={() => handleConfirm(liveMatch)}>
+                      Confirm engagement
+                    </Button>
+                  ) : (
+                    pendingMine(liveMatch).map((r) => (
+                      <Button key={r.id} fullWidth onClick={() => handleConfirm(liveMatch, r.id)}>
+                        Confirm attendance — {r.rank} {r.name}
+                      </Button>
+                    ))
+                  )}
+                  <p className="text-xs text-[#78716C] text-center">
+                    Confirming locks you in for this engagement. It can't be undone here.
+                  </p>
+                </div>
+              )
             )}
 
             {liveMatch.status === "Confirmed" && (

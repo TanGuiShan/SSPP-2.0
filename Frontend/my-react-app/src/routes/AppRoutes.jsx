@@ -43,6 +43,7 @@ const MatchManagementPage = lazy(() => import("../pages/admin/MatchManagementPag
 const SupportQueriesPage = lazy(() => import("../pages/admin/SupportQueriesPage"));
 const LogisticsPage = lazy(() => import("../pages/admin/LogisticsPage"));
 const TierConfigPage = lazy(() => import("../pages/admin/TierConfigPage"));
+const AdminProfilePage = lazy(() => import("../pages/admin/AdminProfilePage"));
 
 function RouteLoadingFallback() {
   return (
@@ -119,6 +120,7 @@ export default function AppRoutes() {
           <Route path="matches" element={<MatchManagementPage />} />
           <Route path="logistics" element={<LogisticsPage />} />
           <Route path="tiers" element={<TierConfigPage />} />
+          <Route path="profile" element={<AdminProfilePage />} />
           <Route path="support" element={<SupportQueriesPage />} />
         </Route>
 

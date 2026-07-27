@@ -98,6 +98,27 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  /**
+   * Merge saved profile changes into the in-memory user so the UI reflects an
+   * edit immediately. onAuthStateChanged only fires on sign-in/out, not on a
+   * Firestore doc write, so without this the app keeps showing the old values
+   * until a full page reload.
+   */
+  function applyProfileChanges(changes) {
+    setUser((current) => {
+      if (!current) return current;
+      const next = { ...current, ...changes };
+      if (TEST_MODE) {
+        try {
+          localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          /* ignore storage errors */
+        }
+      }
+      return next;
+    });
+  }
+
   const value = {
     user,
     loading,
@@ -109,6 +130,7 @@ export function AuthProvider({ children }) {
     login,
     signup,
     logout,
+    applyProfileChanges,
     resetPassword: resetPasswordService,
   };
 

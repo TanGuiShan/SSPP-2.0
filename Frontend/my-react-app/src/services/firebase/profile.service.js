@@ -20,6 +20,29 @@ import {
 import { db } from "./client";
 
 const USERS = "users";
+const PROVIDERS = "providers";
+
+/**
+ * Claim a provider identity at sign-up. The document id IS the catalog id, so
+ * the security rules reject a second account claiming the same id (create only
+ * succeeds when the doc is new and you are its ownerUid). This is what ties a
+ * unit/ambassador account to the roster ids that appear on matches.
+ */
+export async function claimProvider(providerId, { ownerUid, kind, name }) {
+  try {
+    await setDoc(doc(db, PROVIDERS, String(providerId)), {
+      ownerUid,
+      kind: kind ?? null,
+      name: name ?? "",
+      claimedAt: serverTimestamp(),
+    });
+  } catch {
+    throw new Error(
+      "That unit has already been registered by another account. " +
+        "If this is your unit, contact an administrator."
+    );
+  }
+}
 
 /**
  * Create the profile that accompanies a new account.

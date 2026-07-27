@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import Button from "../../components/common/Button";
 import { ChevronLeft, ChevronRight } from "../../assets/icons";
+import { useAuth } from "../../hooks/useAuth";
+import { updateProfile } from "../../services/firebase/profile.service";
+import { publishProviderCatalog } from "../../services/firebase/catalog.service";
+import { TEST_MODE } from "../../config/testMode";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -19,9 +23,45 @@ function buildMonthGrid(year, month) {
 }
 
 export default function AvailabilityPage() {
+  const { user, applyProfileChanges } = useAuth();
   const [cursor, setCursor] = useState({ year: 2026, month: 5 }); // June 2026
   const [selected, setSelected] = useState([]);
   const [timings, setTimings] = useState([TIMINGS[0]]);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  // Load saved availability from the profile once the user is known.
+  useEffect(() => {
+    if (!user?.availability) return;
+    if (Array.isArray(user.availability.dates)) setSelected(user.availability.dates);
+    if (Array.isArray(user.availability.timings)) setTimings(user.availability.timings);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
+
+  const handleSave = async () => {
+    setError("");
+    const changes = { availability: { dates: selected, timings } };
+    try {
+      if (!TEST_MODE && user?.uid) {
+        await updateProfile(user.uid, changes);
+        if (user.providerId) {
+          // Keep the public browse card's availability in sync.
+          await publishProviderCatalog({
+            role: user.role,
+            providerId: user.providerId,
+            ownerUid: user.uid,
+            profile: { ...user, ...changes },
+          });
+        }
+      }
+      applyProfileChanges(changes);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err.message ?? "Could not save availability. Please try again.");
+    }
+  };
 
   const toggleTiming = (t) =>
     setTimings((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
@@ -38,6 +78,12 @@ export default function AvailabilityPage() {
         : [...prev, { key, day, month: cursor.month, year: cursor.year }]
     );
   };
+
+  // Remove one chip by its own key (a chip may belong to a month other than the
+  // one currently on screen, so we can't reconstruct the key from the cursor).
+  const removeDate = (key) => setSelected((prev) => prev.filter((d) => d.key !== key));
+
+  const clearDates = () => setSelected([]);
 
   const shiftMonth = (delta) => {
     setCursor(({ year, month }) => {
@@ -59,12 +105,23 @@ export default function AvailabilityPage() {
         action={
           <Button
             disabled={selected.length === 0 || timings.length === 0}
-            onClick={() => console.log({ dates: selected, timings })}
+            onClick={handleSave}
           >
             Save availability
           </Button>
         }
       />
+
+      {saved && (
+        <div className="rounded-lg bg-[#DCFCE7] text-[#15803D] px-4 py-3 text-sm mb-5">
+          Availability saved.
+        </div>
+      )}
+      {error && (
+        <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mb-5">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Calendar */}
@@ -119,7 +176,22 @@ export default function AvailabilityPage() {
 
         {/* Selected dates */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Selected dates</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">
+              Selected dates
+              {selected.length > 0 && (
+                <span className="ml-2 text-sm font-normal text-[#A8A29E]">({selected.length})</span>
+              )}
+            </h2>
+            {selected.length > 0 && (
+              <button
+                onClick={clearDates}
+                className="text-xs text-[#B91C1C] hover:underline"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
           <div className="card p-5 min-h-[240px]">
             {selected.length === 0 ? (
               <p className="text-sm text-[#A8A29E] italic text-center py-12">
@@ -129,11 +201,11 @@ export default function AvailabilityPage() {
               <div className="flex flex-wrap gap-2">
                 {selected
                   .slice()
-                  .sort((a, b) => a.day - b.day)
+                  .sort((a, b) => a.year - b.year || a.month - b.month || a.day - b.day)
                   .map((d) => (
                     <button
                       key={d.key}
-                      onClick={() => toggleDay(d.day)}
+                      onClick={() => removeDate(d.key)}
                       className="px-3 py-1.5 rounded-full bg-[#F5F5F4] text-xs text-[#44403C] hover:bg-[#E7E5E4] transition-colors"
                     >
                       {d.day} {MONTHS[d.month].slice(0, 3)} ×

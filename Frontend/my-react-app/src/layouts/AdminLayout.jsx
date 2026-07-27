@@ -8,6 +8,7 @@ import {
   MatchesIcon,
   LogisticsIcon,
   TierIcon,
+  ProfileIcon,
   HelpIcon,
 } from "../assets/icons";
 
@@ -19,6 +20,7 @@ const navItems = [
   { label: "Match Results", to: "/admin/matches", icon: MatchesIcon },
   { label: "Inventory", to: "/admin/logistics", icon: LogisticsIcon },
   { label: "Tier Config", to: "/admin/tiers", icon: TierIcon },
+  { label: "Profile", to: "/admin/profile", icon: ProfileIcon },
   { label: "Help & Support", to: "/admin/support", icon: HelpIcon },
 ];
 
