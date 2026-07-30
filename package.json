@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@govtechsg/sgds-web-component": "^3.25.0",
+    "@vercel/speed-insights": "^2.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

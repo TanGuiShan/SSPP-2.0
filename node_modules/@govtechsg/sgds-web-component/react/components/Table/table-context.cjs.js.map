@@ -1,0 +1,1 @@
+{"version":3,"file":"table-context.cjs.js","sources":["../../../../src/components/Table/table-context.ts"],"sourcesContent":["import { createContext } from \"@lit/context\";\n\nexport const TableHeaderBackgroundContext = createContext<boolean>(\"table-header-background\");\n"],"names":["createContext"],"mappings":";;;;;;;MAEa,4BAA4B,GAAGA,qBAAa,CAAU,yBAAyB;;;;"}
