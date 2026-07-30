@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@govtechsg/sgds-web-component": "^3.25.0",
+    "@vercel/speed-insights": "^2.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.1.1"
