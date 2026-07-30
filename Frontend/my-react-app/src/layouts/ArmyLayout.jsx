@@ -18,13 +18,10 @@ import {
  * engagements, help) is common, so they share one layout rather than
  * duplicating it. If the roles diverge further, split this in two.
  */
+// Standard order shared with the other roles: Dashboard first, then the
+// role's functional pages, then Profile, and Help & Support last.
 const navFor = (isAmbassador, openCount) => [
   { label: "Dashboard", to: "/army/dashboard", icon: DashboardIcon },
-  {
-    label: isAmbassador ? "My Profile" : "My Unit Profile",
-    to: isAmbassador ? "/army/profile/ambassador" : "/army/profile",
-    icon: ProfileIcon,
-  },
   { label: "Available Dates", to: "/army/availability", icon: CalendarIcon },
   // Schools' open requests. The count is in the label so a provider notices
   // there's something to pick up without opening the page.
@@ -34,6 +31,11 @@ const navFor = (isAmbassador, openCount) => [
     icon: SearchIcon,
   },
   { label: "My Engagements", to: "/army/engagements", icon: EngagementIcon },
+  {
+    label: isAmbassador ? "My Profile" : "My Unit Profile",
+    to: isAmbassador ? "/army/profile/ambassador" : "/army/profile",
+    icon: ProfileIcon,
+  },
   { label: "Help & Support", to: "/army/help", icon: HelpIcon },
 ];
 

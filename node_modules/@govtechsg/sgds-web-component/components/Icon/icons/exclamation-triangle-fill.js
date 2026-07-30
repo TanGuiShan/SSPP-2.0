@@ -1,0 +1,15 @@
+import { html } from 'lit';
+
+var exclamationTriangleFill = html `
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+    <path
+      fill="currentColor"
+      fill-rule="evenodd"
+      d="M11.36 2.286a1.574 1.574 0 0 1 1.279 0c.295.13.5.368.665.6.163.23.34.537.55.899l8.043 13.891c.21.363.388.67.507.927.12.26.223.556.19.878a1.575 1.575 0 0 1-.64 1.11c-.262.19-.571.249-.856.275-.281.025-.637.026-1.056.026H3.957c-.419 0-.775 0-1.056-.026-.285-.026-.593-.085-.855-.275a1.575 1.575 0 0 1-.64-1.11c-.033-.322.07-.619.19-.878.119-.256.297-.564.507-.927l8.043-13.891c.209-.362.387-.669.55-.899.164-.232.369-.47.664-.6ZM12 15.75a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm0-7.975a.875.875 0 0 0-.875.875v5.1a.875.875 0 0 0 1.75 0v-5.1A.875.875 0 0 0 12 7.775Z"
+      clip-rule="evenodd"
+    />
+  </svg>
+`;
+
+export { exclamationTriangleFill as default };
+//# sourceMappingURL=exclamation-triangle-fill.js.map

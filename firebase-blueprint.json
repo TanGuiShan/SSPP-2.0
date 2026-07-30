@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "interestForms": {
+      "title": "Interest Forms",
+      "description": "School interest form submissions for engagements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "matchId": { "type": "string" },
+        "school": { "type": "object" },
+        "target": { "type": "object" },
+        "date": { "type": "string" },
+        "timings": { "type": "string" },
+        "tier": { "type": "string" },
+        "participants": { "type": "number" },
+        "notes": { "type": "string" },
+        "submittedAt": { "type": "string" },
+        "status": { "type": "string" },
+        "isOpen": { "type": "boolean" }
+      },
+      "required": ["id", "matchId", "submittedAt", "status"]
+    },
+    "matches": {
+      "title": "Matches",
+      "description": "Matching records between schools and military units/ambassadors",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "formId": { "type": "string" },
+        "school": { "type": "object" },
+        "target": { "type": "object" },
+        "isOpen": { "type": "boolean" },
+        "category": { "type": "string" },
+        "volunteersNeeded": { "type": "number" },
+        "date": { "type": "string" },
+        "timings": { "type": "string" },
+        "tier": { "type": "string" },
+        "participants": { "type": "number" },
+        "notes": { "type": "string" },
+        "roster": { "type": "array" },
+        "equipment": { "type": "array" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "status", "createdAt"]
+    }
+  }
+}

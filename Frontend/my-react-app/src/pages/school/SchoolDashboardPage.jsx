@@ -3,8 +3,9 @@ import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/common/StatCard";
 import StatusBadge from "../../components/common/StatusBadge";
 import TargetSummary from "../../components/common/TargetSummary";
-import { useEngagements } from "../../hooks/useEngagements";
-import { getTier } from "../../data/options";
+import { useAuth } from "../../hooks/useAuth";
+import { useEngagements, ownedBySchool } from "../../hooks/useEngagements";
+import { useTiers } from "../../hooks/useTiers";
 import { TAB, linkToTab } from "../../utils/tabs";
 import DataTable from "../../components/common/DataTable";
 
@@ -13,16 +14,23 @@ const fmtDate = (d) =>
 
 export default function SchoolDashboardPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { interestForms, matches } = useEngagements();
+  const { getTier } = useTiers();
 
-  const engaged = matches.filter((m) => m.status === "Confirmed").length;
-  const pending = interestForms.filter((f) => f.status === "Awaiting confirmation").length;
+  // Scope to THIS school — everyone can read all engagements, so the dashboard
+  // must filter to its own or it counts every school's activity.
+  const myForms = interestForms.filter((f) => ownedBySchool(f, user));
+  const myMatches = matches.filter((m) => ownedBySchool(m, user));
+
+  const engaged = myMatches.filter((m) => m.status === "Confirmed").length;
+  const pending = myForms.filter((f) => f.status === "Awaiting confirmation").length;
   // Open requests are waiting on volunteers rather than on a chosen provider,
   // so they're counted separately — otherwise posting one shows up nowhere.
-  const openRequests = interestForms.filter((f) => f.status === "Open").length;
+  const openRequests = myForms.filter((f) => f.status === "Open").length;
 
   // Most recent activity across both lists, newest first
-  const recent = [...interestForms]
+  const recent = [...myForms]
     .sort((a, b) => new Date(b.submittedAt ?? 0) - new Date(a.submittedAt ?? 0))
     .slice(0, 5);
 
@@ -44,7 +52,7 @@ export default function SchoolDashboardPage() {
         />
         <StatCard
           label="Interest Forms"
-          value={interestForms.length}
+          value={myForms.length}
           hint="View all requests"
           onClick={() => navigate(linkToTab("/school/interest-forms", TAB.ALL))}
         />
@@ -69,7 +77,7 @@ export default function SchoolDashboardPage() {
           <h2 className="text-xl" style={{ fontFamily: "var(--font-display)" }}>
             Recent activity
           </h2>
-          {interestForms.length > 0 && (
+          {myForms.length > 0 && (
             <button
               onClick={() => navigate("/school/interest-forms")}
               className="text-xs text-[#2563EB] hover:underline"

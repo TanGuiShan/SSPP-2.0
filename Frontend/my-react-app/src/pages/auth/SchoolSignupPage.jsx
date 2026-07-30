@@ -7,8 +7,7 @@ import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
-import { accountTier } from "../../utils/domain";
-import { SKIP_DOMAIN_CHECK } from "../../config/testMode";
+import { useAuth } from "../../hooks/useAuth";
 import {
   MOBILITY_OPTIONS,
   FORMATIONS,
@@ -17,6 +16,7 @@ import {
 
 export default function SchoolSignupPage() {
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const { values, handleChange, setField } = useForm({
     mobility: "",
@@ -36,7 +36,7 @@ export default function SchoolSignupPage() {
   const [mobileVerified, setMobileVerified] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!values.mobility) return setError("Choose an engagement type.");
@@ -48,17 +48,30 @@ export default function SchoolSignupPage() {
 
     setError("");
 
-    // ── REAL (uncomment when the backend is ready) ────────────────────
-    // await registerSchool({ ...values, emailVerified, mobileVerified });
-
-    // ── DEMO ─────────────────────────────────────────────────────────
-    console.log("School signup", values);
-
-    // Gov domains (*.gov.sg / *.edu.sg) get in straight away. Volunteers from
-    // any other domain verify, then wait for admin approval.
-    // ── REAL: the backend decides this and refuses a session until approved.
-    const tier = SKIP_DOMAIN_CHECK ? "gov" : accountTier(values.email);
-    navigate(tier === "gov" ? "/login" : "/pending-approval");
+    try {
+      // Creates the Firebase account + users/{uid} profile. Schools don't claim
+      // a provider — they own the interest forms/matches they create, stamped
+      // with their uid at submit time. Gov (.edu.sg) domains are approved on
+      // the spot; other domains land on the pending-approval screen.
+      const result = await signup({
+        email: values.email,
+        password: values.password,
+        role: "school",
+        profile: {
+          mobility: values.mobility,
+          fullName: values.fullName,
+          appointment: values.appointment,
+          schoolName: values.schoolName,
+          address: values.address,
+          postalCode: values.postalCode,
+          unitsPreferred: values.unitsPreferred,
+          mobile: values.mobile,
+        },
+      });
+      navigate(result?.approved ? "/login" : "/pending-approval");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (

@@ -24,6 +24,7 @@ export const TAB = {
   AWAITING: "awaiting",
   CONFIRMED: "confirmed",
   CANCELLED: "cancelled",
+  COMPLETED: "completed",
 };
 
 // Each definition maps a tab key to the statuses it includes.
@@ -52,6 +53,11 @@ const DEFS = {
     label: "Cancelled",
     statuses: ["Cancelled", "Withdrawn"],
   },
+  [TAB.COMPLETED]: {
+    key: TAB.COMPLETED,
+    label: "Completed",
+    statuses: ["Completed"],
+  }
 };
 
 /**

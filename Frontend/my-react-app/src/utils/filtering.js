@@ -78,3 +78,28 @@ export function formatRange(from, to) {
     new Date(d).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
   return `${fmt(from)} – ${fmt(to)}`;
 }
+
+// Short timing badges for the per-date availability chips.
+const TIMING_SHORT = { morning: "AM", afternoon: "PM", full_day: "Full day" };
+
+/**
+ * The specific dates a provider marked available, each with its timing, sorted
+ * earliest-first. Returns [] when the doc only carries a from/to range (older
+ * data) so callers can fall back to formatRange().
+ */
+export function availabilityDays(availability) {
+  const dates = availability?.dates;
+  if (!Array.isArray(dates) || dates.length === 0) return [];
+  return dates
+    .slice()
+    .sort((a, b) => a.year - b.year || a.month - b.month || a.day - b.day)
+    .map((d) => ({
+      key: d.key ?? `${d.year}-${d.month}-${d.day}`,
+      label: new Date(d.year, d.month, d.day).toLocaleDateString("en-SG", {
+        day: "numeric",
+        month: "short",
+      }),
+      timing: d.timing ?? null,
+      short: d.timing ? TIMING_SHORT[d.timing] ?? d.timing : "",
+    }));
+}

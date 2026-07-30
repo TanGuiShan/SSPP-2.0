@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ────────────────────────────────────────────────────────────────
+    // NOTE ON DEPLOYMENT:
+    // These rules require a REAL Firebase Auth session (request.auth). In
+    // TEST_MODE the app has no Firebase session, so cross-session Firestore
+    // sync will be denied and the app falls back to localStorage/seed — that
+    // is expected and far safer than the old public "if true" rules. Full
+    // sync returns once signup/login use real Firebase Auth.
+    // ────────────────────────────────────────────────────────────────
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function approved() {
+      return signedIn() && myProfile().approved == true;
+    }
+
+    function hasRole(r) {
+      return approved() && myProfile().role == r;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    // A provider (unit or ambassador) owns a match/form if the id they claimed
+    // at signup is in the document's rosterProviderIds — a parallel array of
+    // plain string ids kept alongside `roster`, because rules cannot iterate an
+    // array of objects but CAN test membership in a list of primitives.
+    function amInRoster(rProviderIds) {
+      return (hasRole('army-unit') || hasRole('army-ambassador'))
+        && myProfile().providerId in rProviderIds;
+    }
+
+    // Government domains are approved on sign-up; everyone else waits for an
+    // admin. Anchored with $ so "edu.sg.attacker.net" does NOT match.
+    function govEmail(email) {
+      return email.matches('.*@.*[.]gov[.]sg$') || email.matches('.*@.*[.]edu[.]sg$');
+    }
+
+    match /users/{uid} {
+      allow read: if request.auth.uid == uid || isAdmin();
+
+      // You may create only your own profile, never as admin. `approved` is
+      // forced to match the domain of your TOKEN email (not a client-written
+      // field), so nobody can self-approve by faking the email field.
+      //
+      // TODO(security): email verification is currently MOCKED in the app, so
+      // we can't yet require a verified token here (a fresh account's
+      // email_verified is false, which would block all signups). This trusts
+      // the gov domain without proof of ownership. To close that gap, turn on
+      // real Firebase email verification and re-add:
+      //     && request.auth.token.email_verified == true
+      allow create: if request.auth.uid == uid
+          && request.resource.data.email == request.auth.token.email
+          && request.resource.data.role in ['school','army-unit','army-ambassador']
+          && request.resource.data.approved == govEmail(request.auth.token.email);
+
+      // Self-edits may not change role or approval.
+      allow update: if (request.auth.uid == uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.approved == resource.data.approved)
+        || isAdmin();
+
+      allow delete: if false;
+    }
+
+    match /schools/{id} {
+      allow read: if approved();
+      allow write: if isAdmin();
+    }
+
+    // Browse catalogs any approved user can read. Admins may curate any doc;
+    // a provider may publish/update only their OWN card (ownerUid == their uid).
+    match /formations/{id} {
+      allow read: if approved();
+      allow create: if isAdmin()
+        || (approved() && request.resource.data.ownerUid == request.auth.uid);
+      allow update, delete: if isAdmin()
+        || (approved() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    match /ambassadors/{id} {
+      allow read: if approved();
+      allow create: if isAdmin()
+        || (approved() && request.resource.data.ownerUid == request.auth.uid);
+      allow update, delete: if isAdmin()
+        || (approved() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    match /providers/{providerId} {
+      allow read: if approved();
+
+      // Claim = reserve this catalog id as yours. The doc id IS the catalog id,
+      // so a second account claiming the same id is rejected (create fails when
+      // the doc already exists).
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      allow update, delete: if isAdmin()
+        || (signedIn() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    match /inventory/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // Engagement tiers are public program config — the signup forms read them
+    // before anyone is signed in, so read is open. Only admins can edit.
+    match /tiers/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Feedback / contact messages. Anyone (even signed-out) may submit one with
+    // a non-empty message; only admins can read or manage the inbox. Create-only
+    // for the public — no reading others' messages, no edits after the fact.
+    match /feedback/{id} {
+      allow create: if request.resource.data.message is string
+                    && request.resource.data.message.size() > 0;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /interestForms/{id} {
+      allow read: if approved();
+      allow create: if hasRole('school')
+        && request.resource.data.schoolUid == request.auth.uid;
+      allow update: if isAdmin()
+        || (hasRole('school') && resource.data.schoolUid == request.auth.uid)
+        || amInRoster(resource.data.rosterProviderIds)                        // rostered provider confirms
+        || (approved() && resource.data.isOpen == true                       // provider joins an OPEN request
+            && myProfile().providerId in request.resource.data.rosterProviderIds);
+      allow delete: if isAdmin()
+        || (hasRole('school') && resource.data.schoolUid == request.auth.uid);
+    }
+
+    match /matches/{id} {
+      allow read: if approved();
+      allow create: if hasRole('school')
+        && request.resource.data.schoolUid == request.auth.uid;
+      allow update: if isAdmin()
+        || (hasRole('school')
+            && resource.data.schoolUid == request.auth.uid)                  // school owns & manages its request, incl. confirming volunteers
+        || amInRoster(resource.data.rosterProviderIds)                       // rostered provider confirms a direct-interest match
+        || (approved() && resource.data.isOpen == true                       // provider volunteers for an OPEN request
+            && myProfile().providerId in request.resource.data.rosterProviderIds);
+      allow delete: if isAdmin();
+    }
+
+    // No catch-all. Anything not matched above is denied.
+  }
+}

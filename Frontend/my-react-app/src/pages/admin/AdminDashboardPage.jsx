@@ -1,12 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/common/StatCard";
 import TargetSummary from "../../components/common/TargetSummary";
+import Button from "../../components/common/Button";
+import { useAuth } from "../../hooks/useAuth";
 import { useEngagements, isEscalated, slotsRemaining } from "../../hooks/useEngagements";
-import { formations } from "../../data/formations";
-import { ambassadors } from "../../data/ambassadors";
-import { schoolCountsByLevel, onboardSchools } from "../../data/schools";
+import { useCollection, useCollectionWhere } from "../../hooks/useCollection";
+import { seedDemoProviders } from "../../services/firebase/demo.service";
+import { schools } from "../../data/schools";
 import { SCHOOL_LEVELS } from "../../data/options";
 import { TAB, linkToTab } from "../../utils/tabs";
 import DataTable from "../../components/common/DataTable";
@@ -24,9 +26,46 @@ export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const { interestForms, matches, assignProvider } = useEngagements();
 
+  // Same live Firestore catalogs the school Browse reads, so the Units and
+  // Ambassadors counts (and the assign-provider dropdown) match Browse exactly.
+  const formations = useCollection("formations");
+  const ambassadors = useCollection("ambassadors");
+
+  // Real school accounts that have signed up (users where role == "school").
+  const schoolAccounts = useCollectionWhere("users", "role", "==", "school");
+
+  // One-click demo data for the Browse catalog. Offered only while both catalogs
+  // are empty, so it's a first-run convenience and never clutters a live board.
+  const { user } = useAuth();
+  const [seeding, setSeeding] = useState(false);
+  const [seedNote, setSeedNote] = useState("");
+  const catalogsEmpty = formations.length === 0 && ambassadors.length === 0;
+
+  const handleSeedDemo = async () => {
+    setSeedNote("");
+    setSeeding(true);
+    try {
+      const { formationsAdded, ambassadorsAdded } = await seedDemoProviders(user?.uid);
+      setSeedNote(
+        formationsAdded + ambassadorsAdded === 0
+          ? "Demo providers are already in Firestore."
+          : `Seeded ${formationsAdded} units and ${ambassadorsAdded} ambassadors — check Browse.`
+      );
+    } catch (e) {
+      setSeedNote(e?.message ?? "Couldn't seed demo data. Make sure you're signed in as an admin.");
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   const stats = useMemo(() => {
-    const onboarded = onboardSchools();
-    const levelCounts = schoolCountsByLevel();
+    // Onboarded = master-roster schools that have a real account (matched by
+    // name); the rest of the roster is "yet to onboard".
+    const onboardedNames = new Set(
+      schoolAccounts.map((a) => (a.schoolName || "").trim()).filter(Boolean)
+    );
+    const onboarded = schools.filter((s) => onboardedNames.has(s.name));
+    const yetToOnboard = schools.filter((s) => !onboardedNames.has(s.name));
 
     const approvedMatches = matches.filter((m) => m.status === "Confirmed");
     const pendingForms = interestForms.filter((f) => f.status === "Awaiting confirmation");
@@ -83,7 +122,7 @@ export default function AdminDashboardPage() {
     return {
       escalatedRequests,
       onboardedCount: onboarded.length,
-      levelCounts,
+      yetToOnboardCount: yetToOnboard.length,
       matchedRequests,
       yetToMatchRequests,
       matchedSchools,
@@ -94,7 +133,7 @@ export default function AdminDashboardPage() {
       upcoming,
       completionRate,
     };
-  }, [interestForms, matches]);
+  }, [interestForms, matches, schoolAccounts]);
 
   return (
     <>
@@ -103,18 +142,39 @@ export default function AdminDashboardPage() {
         title="Programme Overview"
         subtitle="SSPP engagement at a glance for MOE and MINDEF stakeholders"
         action={
-          <span className="px-3 py-1.5 rounded-full bg-[#DBEAFE] text-[#1D4ED8] text-xs font-medium">
-            As of {new Date().toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}
-          </span>
+          <div className="flex items-center gap-3">
+            {catalogsEmpty && (
+              <Button variant="outline" size="sm" loading={seeding} onClick={handleSeedDemo}>
+                Seed demo providers
+              </Button>
+            )}
+            <span className="px-3 py-1.5 rounded-full bg-[#DBEAFE] text-[#1D4ED8] text-xs font-medium">
+              As of {new Date().toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+          </div>
         }
       />
+
+      {seedNote && (
+        <div className="rounded-lg bg-[#EEF2FF] text-[#3730A3] px-4 py-3 text-sm mb-5">
+          {seedNote}
+        </div>
+      )}
 
       {/* Headline figures */}
       <div className="flex gap-4 flex-wrap mb-5">
         <StatCard
           label="Schools onboard"
           value={stats.onboardedCount}
-          hint="View list by level"
+          valueColor="#16A34A"
+          hint="Registered accounts"
+          onClick={() => navigate("/admin/schools")}
+        />
+        <StatCard
+          label="Yet to onboard"
+          value={stats.yetToOnboardCount}
+          valueColor="#EA580C"
+          hint="No account yet"
           onClick={() => navigate("/admin/schools")}
         />
         <StatCard label="Ambassadors" value={ambassadors.length} />

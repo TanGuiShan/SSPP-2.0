@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import { Input, TextArea } from "../../components/common/Input";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
+import { useAuth } from "../../hooks/useAuth";
+import { updateProfile } from "../../services/firebase/profile.service";
+import { publishProviderCatalog } from "../../services/firebase/catalog.service";
+import { TEST_MODE } from "../../config/testMode";
+import AvatarUpload from "../../components/common/AvatarUpload";
 import { TIERS } from "../../data/options";
 
 // Tier definitions come from data/options.js so the unit profile, admin tier
@@ -23,14 +28,38 @@ const initialEquipment = Object.fromEntries(
 );
 
 export default function ArmyProfilePage() {
-  const { values, handleChange } = useForm({
+  const { user, applyProfileChanges } = useAuth();
+
+  const { values, handleChange, setField, setValues } = useForm({
     unitName: "",
     location: "",
-    commandingOfficer: "",
+    fullName: "",
     contactEmail: "",
     contactNumber: "",
     about: "",
+    photoURL: "",
   });
+
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  // Populate from the signed-in unit's saved profile once it loads. Signup
+  // stores the unit under `unit`/providerName and contact under email/mobile;
+  // anything saved later on this page round-trips by its own key.
+  useEffect(() => {
+    if (!user) return;
+    setValues((v) => ({
+      ...v,
+      unitName: user.unitName ?? user.unit ?? user.providerName ?? "",
+      location: user.location ?? "",
+      fullName: user.fullName ?? "",
+      contactEmail: user.email ?? "",
+      contactNumber: user.contactNumber ?? user.mobile ?? "",
+      about: user.about ?? "",
+      photoURL: user.photoURL ?? "",
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   const [selectedTiers, setSelectedTiers] = useState(["tier2"]);
   const [equipment, setEquipment] = useState(initialEquipment);
@@ -70,7 +99,7 @@ export default function ArmyProfilePage() {
       [tierId]: eq[tierId].filter((item) => item.name !== name),
     }));
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Only send tiers the unit offers, and only equipment they ticked.
     const payload = {
       ...values,
@@ -79,28 +108,60 @@ export default function ArmyProfilePage() {
         equipment: equipment[tierId].filter((e) => e.checked).map((e) => e.name),
       })),
     };
-    console.log("Saved unit profile", payload);
+    setError("");
+    try {
+      if (!TEST_MODE && user?.uid) {
+        await updateProfile(user.uid, payload);
+        if (user.providerId) {
+          // Publish/refresh the public browse card schools see.
+          await publishProviderCatalog({
+            role: user.role,
+            providerId: user.providerId,
+            ownerUid: user.uid,
+            profile: { ...user, ...payload },
+          });
+        }
+      }
+      applyProfileChanges(payload);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err.message ?? "Could not save your profile. Please try again.");
+    }
   };
 
   return (
     <>
       <PageHeader
-        eyebrow="My Unit Profile"
-        title="My Unit Profile"
+        eyebrow="Profile"
+        title="Unit profile"
         subtitle="Manage your unit information and engagement preferences"
         action={<Button onClick={handleSave}>Save changes</Button>}
       />
+
+      {saved && (
+        <div className="rounded-lg bg-[#DCFCE7] text-[#15803D] px-4 py-3 text-sm mb-5">
+          Profile saved.
+        </div>
+      )}
+      {error && (
+        <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mb-5">
+          {error}
+        </div>
+      )}
 
       <div className="card p-8 mb-6">
         <h2 className="text-lg font-semibold mb-6 pb-4 border-b border-[#E7E5E4]">Unit information</h2>
 
         <div className="flex flex-col md:flex-row gap-8">
-          <div className="shrink-0 text-center">
-            <div className="w-32 h-32 rounded-lg bg-[#F5F5F4] border border-[#E7E5E4] flex items-center justify-center text-xs text-[#A8A29E]">
-              Unit crest
-            </div>
-            <button className="text-xs text-[#2563EB] mt-3 hover:underline">Change logo</button>
-          </div>
+          <AvatarUpload
+            value={values.photoURL}
+            onChange={(url) => setField("photoURL", url)}
+            shape="square"
+            label="Change logo"
+            fallback="Unit crest"
+          />
 
           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-6">
             <Input
@@ -121,8 +182,8 @@ export default function ArmyProfilePage() {
               label="Commanding officer"
               required
               placeholder="e.g. LTA Tan Xiao Ming"
-              value={values.commandingOfficer}
-              onChange={handleChange("commandingOfficer")}
+              value={values.fullName}
+              onChange={handleChange("fullName")}
             />
             <Input
               label="Contact email"
