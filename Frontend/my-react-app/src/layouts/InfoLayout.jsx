@@ -1,5 +1,5 @@
 import SgdsMasthead from "@govtechsg/sgds-web-component/react/masthead";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import GovernmentFooter from "../components/layout/GovernmentFooter";
 import TestModeBanner from "../components/layout/TestModeBanner";
 
@@ -15,10 +15,10 @@ export default function InfoLayout({ eyebrow, title, subtitle, children }) {
 
       <header className="sspp-signup-header">
         <div className="sspp-signup-header-inner">
-          <div>
+          <Link to="/login" className="flex flex-col no-underline text-inherit">
             <strong>SSPP</strong>
-            <span>School–SAF Partnership Platform</span>
-          </div>
+            <span>SAF-School Partnership Programme</span>
+          </Link>
           <button
             type="button"
             onClick={() => navigate(-1)}
