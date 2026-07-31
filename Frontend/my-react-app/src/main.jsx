@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import App from "./App";
 
 // Register the <sgds-spinner> custom element used by the route loading
@@ -10,5 +11,6 @@ import "@govtechsg/sgds-web-component/components/Spinner/sgds-spinner.js";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <StrictMode>
     <App />
+    <SpeedInsights />
   </StrictMode>
 );

@@ -1,0 +1,8 @@
+{
+  "name": "SSPP 2.0",
+  "description": "Singapore Armed Forces Army Engagement & Matching Portal (SSPP)",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

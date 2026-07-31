@@ -1,0 +1,22 @@
+'use client';
+import { html } from 'lit';
+
+var userCircle = html `
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+    <path
+      fill="currentColor"
+      fill-rule="evenodd"
+      d="M8.025 9.901a3.975 3.975 0 1 1 7.95 0 3.975 3.975 0 0 1-7.95 0ZM12 7.161a2.74 2.74 0 1 0 0 5.48 2.74 2.74 0 0 0 0-5.48Z"
+      clip-rule="evenodd"
+    />
+    <path
+      fill="currentColor"
+      fill-rule="evenodd"
+      d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm10-8.765a8.765 8.765 0 0 0-6.788 14.311 3.976 3.976 0 0 1 2.654-1.89c.385-.076.832-.076 1.537-.076h5.194c.705 0 1.152 0 1.537.077a3.975 3.975 0 0 1 2.654 1.889A8.765 8.765 0 0 0 12 3.235Zm5.886 15.26a2.741 2.741 0 0 0-1.993-1.628c-.25-.05-.565-.052-1.374-.052H9.482c-.81 0-1.125.003-1.375.052a2.741 2.741 0 0 0-1.993 1.629A8.734 8.734 0 0 0 12 20.766c2.265 0 4.33-.86 5.886-2.27Z"
+      clip-rule="evenodd"
+    />
+  </svg>
+`;
+
+export { userCircle as default };
+//# sourceMappingURL=user-circle.js.map

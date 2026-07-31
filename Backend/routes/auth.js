@@ -7,7 +7,7 @@
 //   4. Return a response
 import nodemailer from 'nodemailer'
 import express  from 'express'
-import bcrypt   from 'bcrypt'
+import bcrypt   from 'bcryptjs'
 import jwt      from 'jsonwebtoken'
 import crypto   from 'crypto'       // built into Node, no install needed
 import { sql, pool, poolConnect } from '../db.js'
@@ -22,30 +22,35 @@ function generateToken() {
 }
 
 // ── Helper: send emails ──────────────────────────────────────
-// We'll flesh this out when we configure nodemailer
 async function sendEmail({ to, subject, html }) {
-  // TODO: implement with nodemailer
-  // For now, log to console so you can test without email
   console.log(`📧 Email to: ${to}`)
   console.log(`   Subject:  ${subject}`)
   console.log(`   Body:     ${html}`)
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT),
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  })
+  if (!process.env.EMAIL_HOST) {
+    return
+  }
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject,
-    html,
-  })
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: Number(process.env.EMAIL_PORT) || 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    })
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || 'noreply@sspp.gov.sg',
+      to,
+      subject,
+      html,
+    })
+  } catch (err) {
+    console.warn('Could not send email via transporter:', err.message)
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -219,8 +224,8 @@ router.post('/login', async (req, res) => {
     // 5. Issue a JWT token
     const token = jwt.sign(
       { id: user.id, email: user.email }, // payload — stored inside the token
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
+      process.env.JWT_SECRET || 'sspp-jwt-secret-key-change-in-production',
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     )
 
     // 6. Save session to database

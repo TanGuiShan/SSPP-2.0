@@ -5,7 +5,7 @@ import StatCard from "../../components/common/StatCard";
 import StatusBadge from "../../components/common/StatusBadge";
 import { useAuth } from "../../hooks/useAuth";
 import { useEngagements } from "../../hooks/useEngagements";
-import { getTier } from "../../data/options";
+import { useTiers } from "../../hooks/useTiers";
 import { TAB, linkToTab } from "../../utils/tabs";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -24,6 +24,7 @@ export default function ArmyDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { matches } = useEngagements();
+  const { getTier } = useTiers();
 
   const isAmbassador = user?.role === "army-ambassador";
   const providerKind = isAmbassador ? "ambassador" : "unit";

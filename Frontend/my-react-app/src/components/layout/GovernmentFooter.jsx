@@ -6,8 +6,8 @@ export default function GovernmentFooter({ layout = "default" }) {
       layout={layout}
       tone={layout === "sidebar" ? "neutral" : "fixed-dark"}
       copyrightLiner={`© ${new Date().getFullYear()} Government of Singapore`}
-      contactHref="mailto:sspp-support@example.gov.sg"
-      feedbackHref="mailto:sspp-support@example.gov.sg?subject=SSPP%20feedback"
+      contactHref="/contact"
+      feedbackHref="/feedback"
       privacyHref="#privacy"
       termsOfUseHref="#terms"
     >

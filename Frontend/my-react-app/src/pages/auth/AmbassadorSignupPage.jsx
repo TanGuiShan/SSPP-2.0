@@ -7,8 +7,7 @@ import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
-import { accountTier } from "../../utils/domain";
-import { SKIP_DOMAIN_CHECK } from "../../config/testMode";
+import { useAuth } from "../../hooks/useAuth";
 import {
   MOBILITY_OPTIONS,
   MOBILITY_OF_ENGAGEMENT,
@@ -31,6 +30,7 @@ import {
  */
 export default function AmbassadorSignupPage() {
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const { values, handleChange, setField } = useForm({
     // Personal details
@@ -65,7 +65,7 @@ export default function AmbassadorSignupPage() {
   // Civilian job only makes sense for those not currently serving full-time.
   const showJobTitle = ["nsmen", "nsalumni"].includes(values.serviceScheme);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!values.rank) return setError("Select your rank.");
@@ -87,14 +87,35 @@ export default function AmbassadorSignupPage() {
 
     setError("");
 
-    // ── REAL (uncomment when the backend is ready) ────────────────────
-    // await registerAmbassador({ ...values, emailVerified, mobileVerified });
-
-    // ── DEMO ─────────────────────────────────────────────────────────
-    console.log("Ambassador signup", values);
-
-    const tier = SKIP_DOMAIN_CHECK ? "gov" : accountTier(values.email);
-    navigate(tier === "gov" ? "/login" : "/pending-approval");
+    try {
+      // An ambassador is a new individual, so signUp() sets their providerId to
+      // their own uid and reserves providers/{uid}. Gov domains are approved on
+      // the spot; other domains land on the pending-approval screen.
+      const result = await signup({
+        email: values.email,
+        password: values.password,
+        role: "army-ambassador",
+        providerKind: "ambassador",
+        providerName: values.fullName,
+        profile: {
+          rank: values.rank,
+          fullName: values.fullName,
+          serviceScheme: values.serviceScheme,
+          jobTitleCompany: values.jobTitleCompany,
+          appointment: values.appointment,
+          unit: values.unit,
+          formation: values.formation,
+          mobile: values.mobile,
+          preferredSchoolLevels: values.preferredSchoolLevels,
+          modalityOfEngagement: values.modalityOfEngagement,
+          mobility: values.mobility,
+          remarks: values.remarks,
+        },
+      });
+      navigate(result?.approved ? "/login" : "/pending-approval");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (

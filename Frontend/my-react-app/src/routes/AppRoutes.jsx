@@ -21,6 +21,9 @@ const ForgotPasswordPage = lazy(() => import("../pages/auth/ForgotPasswordPage")
 const VerifyEmailPage = lazy(() => import("../pages/auth/VerifyEmailPage"));
 const PendingApprovalPage = lazy(() => import("../pages/auth/PendingApprovalPage"));
 
+const ContactPage = lazy(() => import("../pages/public/ContactPage"));
+const FeedbackPage = lazy(() => import("../pages/public/FeedbackPage"));
+
 const SchoolDashboardPage = lazy(() => import("../pages/school/SchoolDashboardPage"));
 const BrowseFormationsPage = lazy(() => import("../pages/school/BrowseFormationsPage"));
 const InterestFormsPage = lazy(() => import("../pages/school/InterestFormsPage"));
@@ -43,6 +46,7 @@ const MatchManagementPage = lazy(() => import("../pages/admin/MatchManagementPag
 const SupportQueriesPage = lazy(() => import("../pages/admin/SupportQueriesPage"));
 const LogisticsPage = lazy(() => import("../pages/admin/LogisticsPage"));
 const TierConfigPage = lazy(() => import("../pages/admin/TierConfigPage"));
+const AdminProfilePage = lazy(() => import("../pages/admin/AdminProfilePage"));
 
 function RouteLoadingFallback() {
   return (
@@ -67,6 +71,10 @@ export default function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/pending-approval" element={<PendingApprovalPage />} />
+
+        {/* Public utility pages — reachable from the footer by any user. */}
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/feedback" element={<FeedbackPage />} />
 
         <Route
           path="/school"
@@ -119,6 +127,7 @@ export default function AppRoutes() {
           <Route path="matches" element={<MatchManagementPage />} />
           <Route path="logistics" element={<LogisticsPage />} />
           <Route path="tiers" element={<TierConfigPage />} />
+          <Route path="profile" element={<AdminProfilePage />} />
           <Route path="support" element={<SupportQueriesPage />} />
         </Route>
 

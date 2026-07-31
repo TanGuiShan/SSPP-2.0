@@ -7,8 +7,10 @@ import Button from "../../components/common/Button";
 import { Input } from "../../components/common/Input";
 import Modal from "../../components/common/Modal";
 import { useModal } from "../../hooks/useModal";
-import { useEngagements, slotsRemaining } from "../../hooks/useEngagements";
-import { getTier, TIMING_SLOTS } from "../../data/options";
+import { useAuth } from "../../hooks/useAuth";
+import { useEngagements, slotsRemaining, ownedBySchool } from "../../hooks/useEngagements";
+import { TIMING_SLOTS } from "../../data/options";
+import { useTiers } from "../../hooks/useTiers";
 import DataTable from "../../components/common/DataTable";
 import TabFilter from "../../components/common/TabFilter";
 import { TAB, tabsFor, applyTab, resolveTab, TAB_PARAM } from "../../utils/tabs";
@@ -31,7 +33,10 @@ function DetailRow({ label, children }) {
 }
 
 export default function InterestFormsPage() {
-  const { interestForms, matches, withdrawInterest, updateOpenRequest } = useEngagements();
+  const { user } = useAuth();
+  const { interestForms, matches, withdrawInterest, updateOpenRequest, confirmVolunteer } =
+    useEngagements();
+  const { getTier } = useTiers();
   const { open, payload, openModal, closeModal } = useModal();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState(TAB.ALL);
@@ -42,8 +47,14 @@ export default function InterestFormsPage() {
     setTab(resolveTab(searchParams.get(TAB_PARAM), TABS, TAB.ALL));
   }, [searchParams]);
 
+  // Only THIS school's requests — all approved users can read every form.
+  const myForms = useMemo(
+    () => interestForms.filter((f) => ownedBySchool(f, user)),
+    [interestForms, user]
+  );
+
   const activeTab = TABS.find((t) => t.key === tab) ?? TABS[0];
-  const rows = useMemo(() => applyTab(interestForms, activeTab), [interestForms, activeTab]);
+  const rows = useMemo(() => applyTab(myForms, activeTab), [myForms, activeTab]);
 
   const handleWithdraw = (id) => {
     withdrawInterest(id);
@@ -58,15 +69,15 @@ export default function InterestFormsPage() {
         subtitle="Requests stay awaiting until the unit or ambassadors you picked confirm"
       />
 
-      {interestForms.length > 0 && (
-        <TabFilter tabs={TABS} value={tab} onChange={setTab} items={interestForms} />
+      {myForms.length > 0 && (
+        <TabFilter tabs={TABS} value={tab} onChange={setTab} items={myForms} />
       )}
 
       <div className="card overflow-hidden">
         {rows.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-sm text-[#78716C]">
-              {interestForms.length === 0
+              {myForms.length === 0
                 ? "No requests yet. Browse units or ambassadors to submit one."
                 : `No ${activeTab.label.toLowerCase()} requests.`}
             </p>
@@ -231,6 +242,50 @@ export default function InterestFormsPage() {
                       Edit request
                     </Button>
                   )}
+                </div>
+              );
+            })()}
+
+            {/* Volunteers for an open request — the school picks who it wants. */}
+            {payload.isOpen && (() => {
+              const match = matches.find((m) => m.id === payload.matchId);
+              const roster = match?.roster ?? [];
+              if (roster.length === 0) return null;
+              const need = match.volunteersNeeded ?? 1;
+              const confirmedCount = roster.filter((r) => r.confirmed).length;
+              return (
+                <div className="mt-6">
+                  <p className="text-[11px] uppercase tracking-wide text-[#A8A29E] mb-2">
+                    Volunteers — choose who you want ({confirmedCount}/{need} confirmed)
+                  </p>
+                  <div className="space-y-2">
+                    {roster.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-[#E7E5E4] px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm text-[#1C1917] truncate">
+                            {r.rank ? `${r.rank} ${r.name}` : r.name}
+                          </p>
+                          {(r.appointment || r.location) && (
+                            <p className="text-xs text-[#78716C] truncate">
+                              {r.appointment || r.location}
+                            </p>
+                          )}
+                        </div>
+                        {r.confirmed ? (
+                          <span className="text-xs text-[#15803D] font-medium shrink-0">Chosen ✓</span>
+                        ) : confirmedCount >= need ? (
+                          <span className="text-xs text-[#A8A29E] shrink-0">Full</span>
+                        ) : (
+                          <Button size="sm" onClick={() => confirmVolunteer(payload.matchId, r.id)}>
+                            Choose
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })()}

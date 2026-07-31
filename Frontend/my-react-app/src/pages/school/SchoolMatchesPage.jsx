@@ -7,8 +7,10 @@ import EngagementRoster from "../../components/common/EngagementRoster";
 import Button from "../../components/common/Button";
 import Modal from "../../components/common/Modal";
 import { useModal } from "../../hooks/useModal";
-import { useEngagements } from "../../hooks/useEngagements";
-import { getTier, TIMING_SLOTS } from "../../data/options";
+import { useAuth } from "../../hooks/useAuth";
+import { useEngagements, ownedBySchool } from "../../hooks/useEngagements";
+import { TIMING_SLOTS } from "../../data/options";
+import { useTiers } from "../../hooks/useTiers";
 import TabFilter from "../../components/common/TabFilter";
 import { TAB, tabsFor, applyTab, resolveTab, TAB_PARAM } from "../../utils/tabs";
 
@@ -35,7 +37,9 @@ function DetailRow({ label, children }) {
 }
 
 export default function SchoolMatchesPage() {
+  const { user } = useAuth();
   const { matches, cancelMatch } = useEngagements();
+  const { getTier } = useTiers();
   const { open, payload, openModal, closeModal } = useModal();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState(TAB.ALL);
@@ -45,8 +49,14 @@ export default function SchoolMatchesPage() {
     setTab(resolveTab(searchParams.get(TAB_PARAM), TABS, TAB.ALL));
   }, [searchParams]);
 
+  // Only THIS school's engagements — everyone can read all matches, so scope here.
+  const myMatches = useMemo(
+    () => matches.filter((m) => ownedBySchool(m, user)),
+    [matches, user]
+  );
+
   const activeTab = TABS.find((t) => t.key === tab) ?? TABS[0];
-  const rows = useMemo(() => applyTab(matches, activeTab), [matches, activeTab]);
+  const rows = useMemo(() => applyTab(myMatches, activeTab), [myMatches, activeTab]);
 
   const handleCancel = (id) => {
     cancelMatch(id);
@@ -61,14 +71,14 @@ export default function SchoolMatchesPage() {
         subtitle="Track who has confirmed for each engagement"
       />
 
-      {matches.length > 0 && (
-        <TabFilter tabs={TABS} value={tab} onChange={setTab} items={matches} />
+      {myMatches.length > 0 && (
+        <TabFilter tabs={TABS} value={tab} onChange={setTab} items={myMatches} />
       )}
 
       {rows.length === 0 ? (
         <div className="card py-16 text-center">
           <p className="text-sm text-[#78716C]">
-            {matches.length === 0
+            {myMatches.length === 0
               ? "No engagements yet. Submit an interest form to get started."
               : `No ${activeTab.label.toLowerCase()} engagements.`}
           </p>

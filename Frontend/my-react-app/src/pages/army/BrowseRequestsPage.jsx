@@ -8,7 +8,8 @@ import { MultiSelect } from "../../components/common/MultiSelect";
 import { useModal } from "../../hooks/useModal";
 import { useAuth } from "../../hooks/useAuth";
 import { useEngagements, slotsRemaining } from "../../hooks/useEngagements";
-import { getTier, TIERS, TIMING_SLOTS } from "../../data/options";
+import { TIERS, TIMING_SLOTS } from "../../data/options";
+import { useTiers } from "../../hooks/useTiers";
 
 const timingLabel = (v) => TIMING_SLOTS.find((t) => t.value === v)?.label ?? v;
 
@@ -58,6 +59,7 @@ export default function BrowseRequestsPage() {
 
   const [filters, setFilters] = useState(emptyFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const { getTier, tiers } = useTiers();
 
   const isAmbassador = user?.role === "army-ambassador";
   const providerKind = isAmbassador ? "ambassador" : "unit";
@@ -220,7 +222,7 @@ export default function BrowseRequestsPage() {
 
           <MultiSelect
             label="Engagement tier"
-            options={TIERS.map((t) => ({ value: t.id, label: t.short }))}
+            options={tiers.map((t) => ({ value: t.id, label: t.short }))}
             value={filters.tiers}
             onChange={(v) => setFilters((f) => ({ ...f, tiers: v }))}
           />

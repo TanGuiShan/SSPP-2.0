@@ -25,11 +25,15 @@
 // ────────────────────────────────────────────────────────────────────────
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { seedInterestForms, seedMatches } from "../data/seed";
+import {
+  subscribeEngagements,
+  saveInterestFormAndMatch,
+} from "../api/engagementsFirestore";
+import { useAuth } from "./useAuth";
 
 const EngagementContext = createContext(null);
 
-const STORAGE_KEY = "sspp.engagements.v2"; // bumped: shape changed for 4b
+const STORAGE_KEY = "sspp.engagements.v3"; // v3: unlinked from local seed — Firestore is the source of truth
 
 function readStored() {
   try {
@@ -88,18 +92,36 @@ export function confirmedCount(match) {
 function withDerivedStatus(match) {
   if (match.status === "Cancelled") return match;
 
-  // An OPEN request has no provider yet — the school asked for N volunteers
-  // and providers claim slots first-come. It stays "Open" until enough have
-  // volunteered, at which point it becomes a normal match and follows the
-  // usual Awaiting -> Confirmed flow.
+  const roster = match.roster ?? [];
+  const confirmed = roster.filter((r) => r.confirmed).length;
+
+  // OPEN request: the school posts it, providers VOLUNTEER, and the SCHOOL then
+  // confirms the ones it wants. "Open" with no volunteers; "Awaiting
+  // confirmation" once at least one has volunteered; "Confirmed" once the
+  // school has confirmed enough of them.
   if (match.isOpen) {
-    const filled = match.roster?.length ?? 0;
-    if (filled < (match.volunteersNeeded ?? 1)) {
-      return { ...match, status: "Open" };
-    }
+    const need = match.volunteersNeeded ?? 1;
+    if (roster.length === 0) return { ...match, status: "Open" };
+    if (confirmed >= need) return { ...match, status: "Confirmed" };
+    return { ...match, status: "Awaiting confirmation" };
   }
 
   return { ...match, status: isFullyConfirmed(match) ? "Confirmed" : "Awaiting confirmation" };
+}
+
+// Display target built from the CONFIRMED roster members — an open request only
+// gets a concrete provider once the school has confirmed volunteers.
+function targetFromConfirmed(match) {
+  const confirmed = (match.roster ?? []).filter((r) => r.confirmed);
+  if (confirmed.length === 0) return match.target ?? null;
+  if (confirmed.length === 1 && confirmed[0].kind === "unit") {
+    const u = confirmed[0];
+    return { kind: "unit", unit: { id: u.id, name: u.name, location: u.location } };
+  }
+  if (confirmed.length === 1) {
+    return { kind: "ambassador", ambassador: { ...confirmed[0] } };
+  }
+  return { kind: "team", team: confirmed.map((r) => ({ ...r })) };
 }
 
 /** Slots still to be filled on an open request. */
@@ -117,22 +139,85 @@ export function isEscalated(match, days = OPEN_ESCALATION_DAYS) {
   return (Date.now() - created) / (24 * 60 * 60 * 1000) >= days;
 }
 
+// A provider may withdraw from a request they volunteered for only while the
+// event is still more than a month away. Inside that window only an admin can
+// remove them.
+export const WITHDRAW_LOCK_DAYS = 30;
+
+export function canWithdrawVolunteer(match) {
+  if (!match?.date) return false;
+  const daysUntil = (new Date(match.date).getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+  return daysUntil > WITHDRAW_LOCK_DAYS;
+}
+
+/**
+ * Does this interest form / match belong to the given school? The Firestore
+ * rules let any approved user READ all engagements (providers need to see open
+ * requests), so the SCHOOL views must scope to their own records client-side —
+ * otherwise a school sees every school's engagements. Prefer the stamped
+ * schoolUid; fall back to the school name for optimistic/legacy records that
+ * haven't round-tripped through Firestore yet.
+ */
+export function ownedBySchool(record, user) {
+  if (!record || !user) return false;
+  return record.schoolUid
+    ? record.schoolUid === user.uid
+    : record.school === user.schoolName;
+}
+
 export function EngagementProvider({ children }) {
+  const { user } = useAuth();
+
   const [state, setState] = useState(
-    () => readStored() ?? { interestForms: seedInterestForms, matches: seedMatches }
+    () => readStored() ?? { interestForms: [], matches: [] }
   );
+
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Stamp the ownership fields the Firestore security rules check, then save.
+  //   schoolUid         — the creating school's auth uid (set once, preserved)
+  //   rosterProviderIds — flat list of the provider ids on the roster, so a
+  //                       rule can test membership (rules can't iterate objects)
+  // Both the form and its match get the same rosterProviderIds so their rules
+  // stay in sync when a provider confirms and both docs are written together.
+  function persist(form, match) {
+    const rosterProviderIds = (match?.roster ?? form?.roster ?? []).map((r) => r.id);
+    const stamp = (d) =>
+      d && { ...d, schoolUid: d.schoolUid ?? user?.uid, rosterProviderIds };
+    saveInterestFormAndMatch(stamp(form), stamp(match));
+  }
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  useEffect(() => {
+    // Firestore is the single source of truth for engagements — no local seed.
+    // Subscribe for live sync across users/sessions and mirror it exactly,
+    // including when a collection is empty.
+    const unsub = subscribeEngagements(
+      (remoteData) => {
+        setIsConnected(true);
+        setState(remoteData);
+      },
+      (err) => {
+        console.warn("Firestore listener warning:", err);
+      }
+    );
+
+    return () => unsub();
+  }, []);
+
   function submitInterest(payload) {
+    let createdForm = null;
+    let createdMatch = null;
+
     setState((s) => {
       const formId = nextId("IF", s.interestForms);
       const matchId = nextId("AWEE-2026-", s.matches);
       const roster = buildRoster(payload.target);
 
-      const form = {
+      createdForm = {
         id: formId,
         matchId,
         submittedAt: new Date().toISOString(),
@@ -140,7 +225,7 @@ export function EngagementProvider({ children }) {
         ...payload,
       };
 
-      const match = withDerivedStatus({
+      createdMatch = withDerivedStatus({
         id: matchId,
         formId,
         school: payload.school,
@@ -156,10 +241,14 @@ export function EngagementProvider({ children }) {
       });
 
       return {
-        interestForms: [form, ...s.interestForms],
-        matches: [match, ...s.matches],
+        interestForms: [createdForm, ...s.interestForms],
+        matches: [createdMatch, ...s.matches],
       };
     });
+
+    if (createdForm && createdMatch) {
+      persist(createdForm, createdMatch);
+    }
   }
 
   /**
@@ -170,11 +259,14 @@ export function EngagementProvider({ children }) {
    * volunteer (first-come). `category` limits who sees it.
    */
   function submitOpenRequest(payload) {
+    let createdForm = null;
+    let createdMatch = null;
+
     setState((s) => {
       const formId = nextId("IF", s.interestForms);
       const matchId = nextId("AWEE-2026-", s.matches);
 
-      const form = {
+      createdForm = {
         id: formId,
         matchId,
         submittedAt: new Date().toISOString(),
@@ -183,7 +275,7 @@ export function EngagementProvider({ children }) {
         ...payload,
       };
 
-      const match = withDerivedStatus({
+      createdMatch = withDerivedStatus({
         id: matchId,
         formId,
         school: payload.school,
@@ -202,10 +294,14 @@ export function EngagementProvider({ children }) {
       });
 
       return {
-        interestForms: [form, ...s.interestForms],
-        matches: [match, ...s.matches],
+        interestForms: [createdForm, ...s.interestForms],
+        matches: [createdMatch, ...s.matches],
       };
     });
+
+    if (createdForm && createdMatch) {
+      persist(createdForm, createdMatch);
+    }
   }
 
   /**
@@ -215,6 +311,9 @@ export function EngagementProvider({ children }) {
    * someone who already committed).
    */
   function updateOpenRequest(matchId, changes) {
+    let updatedMatch = null;
+    let updatedForm = null;
+
     setState((s) => {
       const matches = s.matches.map((m) => {
         if (m.id !== matchId || !m.isOpen) return m;
@@ -229,14 +328,18 @@ export function EngagementProvider({ children }) {
         return withDerivedStatus(next);
       });
 
-      const match = matches.find((m) => m.id === matchId);
-      return {
-        matches,
-        interestForms: s.interestForms.map((f) =>
-          f.matchId === matchId ? { ...f, ...changes, status: match.status } : f
-        ),
-      };
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = s.interestForms.map((f) =>
+        f.matchId === matchId ? { ...f, ...changes, status: updatedMatch?.status } : f
+      );
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+
+      return { matches, interestForms };
     });
+
+    if (updatedMatch || updatedForm) {
+      persist(updatedForm, updatedMatch);
+    }
   }
 
   /**
@@ -247,33 +350,37 @@ export function EngagementProvider({ children }) {
    * @param {object} provider - { id, kind, name, rank?, appointment?, location? }
    */
   function volunteerForRequest(matchId, provider) {
+    let updatedMatch = null;
+    let updatedForm = null;
+
     setState((s) => {
       const matches = s.matches.map((m) => {
         if (m.id !== matchId || !m.isOpen) return m;
         if ((m.roster ?? []).some((r) => r.id === provider.id)) return m; // already in
-        if (slotsRemaining(m) === 0) return m;                            // full
+        // Keep accepting volunteers until the school has confirmed enough.
+        const confirmed = (m.roster ?? []).filter((r) => r.confirmed).length;
+        if (confirmed >= (m.volunteersNeeded ?? 1)) return m;             // already staffed
 
         const roster = [
           ...(m.roster ?? []),
           { ...provider, confirmed: false, confirmedAt: null, volunteered: true },
         ];
 
-        // Once full, describeTarget needs a real target to render.
-        const stillOpen = roster.length < (m.volunteersNeeded ?? 1);
-        const target = stillOpen
-          ? null
-          : roster.length === 1 && roster[0].kind === "unit"
-          ? { kind: "unit", unit: { id: roster[0].id, name: roster[0].name, location: roster[0].location } }
-          : roster.length === 1
-          ? { kind: "ambassador", ambassador: { ...roster[0] } }
-          : { kind: "team", team: roster.map((r) => ({ ...r })) };
-
-        return withDerivedStatus({ ...m, roster, target });
+        // The provider is only a volunteer until the school confirms them, so
+        // the target stays unset here (see confirmVolunteer).
+        return withDerivedStatus({ ...m, roster });
       });
 
-      const match = matches.find((m) => m.id === matchId);
-      return { matches, interestForms: syncForm(s.interestForms, matchId, match.status) };
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = syncForm(s.interestForms, matchId, updatedMatch?.status);
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+
+      return { matches, interestForms };
     });
+
+    if (updatedMatch || updatedForm) {
+      persist(updatedForm, updatedMatch);
+    }
   }
 
   /**
@@ -285,18 +392,72 @@ export function EngagementProvider({ children }) {
     volunteerForRequest(matchId, { ...provider, assignedByAdmin: true });
   }
 
+  // School confirms a volunteer it wants. Once enough are confirmed the match
+  // becomes Confirmed (see withDerivedStatus).
+  function confirmVolunteer(matchId, providerId) {
+    let updatedMatch = null;
+    let updatedForm = null;
+    setState((s) => {
+      const matches = s.matches.map((m) => {
+        if (m.id !== matchId) return m;
+        const roster = (m.roster ?? []).map((r) =>
+          r.id === providerId
+            ? { ...r, confirmed: true, confirmedAt: new Date().toISOString() }
+            : r
+        );
+        const next = withDerivedStatus({ ...m, roster });
+        return { ...next, target: targetFromConfirmed(next) };
+      });
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = syncForm(s.interestForms, matchId, updatedMatch?.status);
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+      return { matches, interestForms };
+    });
+    if (updatedMatch || updatedForm) persist(updatedForm, updatedMatch);
+  }
+
+  // Admin-only: remove a volunteer from a request. Providers can't withdraw
+  // once they've volunteered — only an admin can pull them out.
+  function removeVolunteer(matchId, providerId) {
+    let updatedMatch = null;
+    let updatedForm = null;
+    setState((s) => {
+      const matches = s.matches.map((m) => {
+        if (m.id !== matchId) return m;
+        const roster = (m.roster ?? []).filter((r) => r.id !== providerId);
+        const next = withDerivedStatus({ ...m, roster });
+        return { ...next, target: targetFromConfirmed(next) };
+      });
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = syncForm(s.interestForms, matchId, updatedMatch?.status);
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+      return { matches, interestForms };
+    });
+    if (updatedMatch || updatedForm) persist(updatedForm, updatedMatch);
+  }
+
   function withdrawInterest(id) {
+    let updatedForm = null;
+    let updatedMatch = null;
+
     setState((s) => {
       const form = s.interestForms.find((f) => f.id === id);
-      return {
-        interestForms: s.interestForms.map((f) =>
-          f.id === id ? { ...f, status: "Withdrawn" } : f
-        ),
-        matches: s.matches.map((m) =>
-          m.id === form?.matchId ? { ...m, status: "Cancelled" } : m
-        ),
-      };
+      const interestForms = s.interestForms.map((f) =>
+        f.id === id ? { ...f, status: "Withdrawn" } : f
+      );
+      const matches = s.matches.map((m) =>
+        m.id === form?.matchId ? { ...m, status: "Cancelled" } : m
+      );
+
+      updatedForm = interestForms.find((f) => f.id === id);
+      updatedMatch = matches.find((m) => m.id === form?.matchId);
+
+      return { interestForms, matches };
     });
+
+    if (updatedForm || updatedMatch) {
+      persist(updatedForm, updatedMatch);
+    }
   }
 
   function syncForm(forms, matchId, status) {
@@ -304,6 +465,9 @@ export function EngagementProvider({ children }) {
   }
 
   function confirmAsUnit(matchId, equipment = []) {
+    let updatedMatch = null;
+    let updatedForm = null;
+
     setState((s) => {
       const matches = s.matches.map((m) => {
         if (m.id !== matchId) return m;
@@ -312,12 +476,22 @@ export function EngagementProvider({ children }) {
         );
         return withDerivedStatus({ ...m, roster, equipment });
       });
-      const match = matches.find((m) => m.id === matchId);
-      return { matches, interestForms: syncForm(s.interestForms, matchId, match.status) };
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = syncForm(s.interestForms, matchId, updatedMatch?.status);
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+
+      return { matches, interestForms };
     });
+
+    if (updatedMatch || updatedForm) {
+      persist(updatedForm, updatedMatch);
+    }
   }
 
   function confirmAsAmbassador(matchId, ambassadorId) {
+    let updatedMatch = null;
+    let updatedForm = null;
+
     setState((s) => {
       const matches = s.matches.map((m) => {
         if (m.id !== matchId) return m;
@@ -326,31 +500,55 @@ export function EngagementProvider({ children }) {
         );
         return withDerivedStatus({ ...m, roster });
       });
-      const match = matches.find((m) => m.id === matchId);
-      return { matches, interestForms: syncForm(s.interestForms, matchId, match.status) };
+      updatedMatch = matches.find((m) => m.id === matchId);
+      const interestForms = syncForm(s.interestForms, matchId, updatedMatch?.status);
+      updatedForm = interestForms.find((f) => f.matchId === matchId);
+
+      return { matches, interestForms };
     });
+
+    if (updatedMatch || updatedForm) {
+      persist(updatedForm, updatedMatch);
+    }
   }
 
   function cancelMatch(id) {
-    setState((s) => ({
-      matches: s.matches.map((m) => (m.id === id ? { ...m, status: "Cancelled" } : m)),
-      interestForms: s.interestForms.map((f) =>
+    let updatedMatch = null;
+    let updatedForm = null;
+
+    setState((s) => {
+      const matches = s.matches.map((m) => (m.id === id ? { ...m, status: "Cancelled" } : m));
+      const interestForms = s.interestForms.map((f) =>
         f.matchId === id ? { ...f, status: "Cancelled" } : f
-      ),
-    }));
+      );
+
+      updatedMatch = matches.find((m) => m.id === id);
+      updatedForm = interestForms.find((f) => f.matchId === id);
+
+      return { matches, interestForms };
+    });
+
+    if (updatedMatch || updatedForm) {
+      persist(updatedForm, updatedMatch);
+    }
   }
 
   function resetDemo() {
-    setState({ interestForms: seedInterestForms, matches: seedMatches });
+    // No local seed any more. Clears the local view; the live Firestore
+    // subscription immediately repopulates from the database.
+    setState({ interestForms: [], matches: [] });
   }
 
   const value = {
+    isConnected,
     interestForms: state.interestForms,
     matches: state.matches,
     submitInterest,
     submitOpenRequest,
     updateOpenRequest,
     volunteerForRequest,
+    confirmVolunteer,
+    removeVolunteer,
     assignProvider,
     withdrawInterest,
     confirmAsUnit,

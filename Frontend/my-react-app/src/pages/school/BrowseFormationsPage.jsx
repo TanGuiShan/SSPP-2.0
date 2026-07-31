@@ -10,8 +10,8 @@ import Button from "../../components/common/Button";
 import { useModal } from "../../hooks/useModal";
 import { useAuth } from "../../hooks/useAuth";
 import { useEngagements } from "../../hooks/useEngagements";
-import { formations } from "../../data/formations";
-import { ambassadors } from "../../data/ambassadors";
+import { useCollection } from "../../hooks/useCollection";
+import { formationImage } from "../../utils/formationImages";
 import { FORMATIONS, TOPICS, SCHOOL_LEVELS, MOBILITY_OPTIONS } from "../../data/options";
 import { applyFilters, emptyFilters } from "../../utils/filtering";
 import { TAB, linkToTab } from "../../utils/tabs";
@@ -43,6 +43,16 @@ export default function BrowseFormationsPage() {
   const { open, payload, openModal, closeModal } = useModal();
   const [openRequestShown, setOpenRequestShown] = useState(false);
 
+  // Live catalogs from Firestore (was the static data/*.js sample files).
+  // A formation may carry a full `image` URL or just an `imageKey` that maps to
+  // a bundled unit picture.
+  const rawFormations = useCollection("formations");
+  const ambassadors = useCollection("ambassadors");
+  const formations = useMemo(
+    () => rawFormations.map((f) => ({ ...f, image: f.image || formationImage(f.imageKey) })),
+    [rawFormations]
+  );
+
   // "I can't find anyone suitable" — post a request and let providers come.
   const handleOpenRequest = (data) => {
     submitOpenRequest({
@@ -53,8 +63,8 @@ export default function BrowseFormationsPage() {
     navigate(linkToTab("/school/interest-forms", TAB.ALL));
   };
 
-  const filteredUnits = useMemo(() => applyFilters(formations, unitFilters), [unitFilters]);
-  const filteredAmbs = useMemo(() => applyFilters(ambassadors, ambFilters), [ambFilters]);
+  const filteredUnits = useMemo(() => applyFilters(formations, unitFilters), [formations, unitFilters]);
+  const filteredAmbs = useMemo(() => applyFilters(ambassadors, ambFilters), [ambassadors, ambFilters]);
 
   const isAmbTab = tab === "ambassadors";
   const teamMode = team.length > 0;

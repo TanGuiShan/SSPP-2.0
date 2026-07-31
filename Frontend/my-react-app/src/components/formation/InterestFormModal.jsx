@@ -3,7 +3,8 @@ import Modal from "../common/Modal";
 import { Input, TextArea, Select } from "../common/Input";
 import { MultiSelect } from "../common/MultiSelect";
 import Button from "../common/Button";
-import { TIMING_SLOTS, getTier, tiersFor, MIN_OFFICERS_FOR_BOOTH } from "../../data/options";
+import { TIMING_SLOTS, MIN_OFFICERS_FOR_BOOTH } from "../../data/options";
+import { useTiers } from "../../hooks/useTiers";
 
 export default function InterestFormModal({ open, onClose, formation, onSubmit }) {
   const [form, setForm] = useState({
@@ -16,6 +17,7 @@ export default function InterestFormModal({ open, onClose, formation, onSubmit }
   const [error, setError] = useState("");
 
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const { getTier, tiersFor } = useTiers();
 
   const isTeam = Boolean(formation?.isTeam);
   const isAmbassador = isTeam || Boolean(formation?.isAmbassador);

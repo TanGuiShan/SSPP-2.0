@@ -3,7 +3,8 @@ import Modal from "../common/Modal";
 import { Input, TextArea, Select } from "../common/Input";
 import { MultiSelect } from "../common/MultiSelect";
 import Button from "../common/Button";
-import { TIMING_SLOTS, tiersFor, MIN_OFFICERS_FOR_BOOTH } from "../../data/options";
+import { TIMING_SLOTS, MIN_OFFICERS_FOR_BOOTH } from "../../data/options";
+import { useTiers } from "../../hooks/useTiers";
 
 /**
  * "I can't find anyone suitable" — the school describes what it needs and
@@ -47,6 +48,7 @@ export default function OpenRequestModal({ open, onClose, onSubmit }) {
   const [error, setError] = useState("");
 
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const { tiersFor } = useTiers();
 
   // A unit turns up as one provider; ambassador-based requests can need several.
   const isUnitRequest = form.category === "unit";
