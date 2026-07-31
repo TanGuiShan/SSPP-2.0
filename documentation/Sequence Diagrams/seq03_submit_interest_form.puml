@@ -1,0 +1,45 @@
+@startuml seq03_submit_interest_form
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 1.2
+skinparam roundcorner 8
+skinparam maxMessageSize 220
+skinparam sequence {
+  ActorBorderColor #2b6fb3
+  ActorBackgroundColor #e7edf5
+  ParticipantBorderColor #2b6fb3
+  ParticipantBackgroundColor #bfe0f5
+  LifeLineBorderColor #888888
+  ArrowColor #222222
+  NoteBackgroundColor #fff6cf
+  NoteBorderColor #b8a23a
+}
+title Submit Direct Interest Form\n<size:12><i>from hooks/useEngagements.jsx — submitInterest()</i></size>
+
+actor "School" as school
+boundary "BrowseFormationsPage" as browse
+control "useEngagements()" as hook
+database "interestForms /\nmatches" as db
+
+autonumber 1
+
+school -> browse ++ : selectProvider(unit / ambassador / team)
+browse -> hook ++ : submitInterest({ target, date, tier, ... })
+hook -> hook : buildRoster(target)\n→ one entry per unit,\nor per ambassador in team
+
+note over hook
+  tiersFor(providerType, { groupSize }) already checked
+  client-side — team of 4+ ambassadors unlocks Tier 2 (Rule B)
+end note
+
+hook -> db ++ : saveInterestFormAndMatch(form, match)\nstatus: "Awaiting confirmation"
+
+note over db
+  both docs stamped with schoolUid and
+  rosterProviderIds (flat id list for security rules)
+end note
+
+db --> hook -- : created
+hook --> browse -- : interestForm, match
+browse --> school -- : show confirmation — status: Awaiting
+
+@enduml

@@ -87,24 +87,6 @@ export const MOBILITY_OPTIONS = [
   },
 ];
 
-export const UNIT_MOBILITY_OPTIONS = [
-  {
-    value: "tier3",
-    label: "Sharing only",
-    description: "Talks and briefings. No equipment brought to the school.",
-  },
-  {
-    value: "tier2",
-    label: "Sharing + booth setup",
-    description: "Talks plus a static display or equipment on site.",
-  },
-  {
-    value: "tier1",
-    label: "Hands-on experience",
-    description: "Students handle real equipment under supervision.",
-  }
-];
-
 // Engagement types, used as a MULTI-select at sign-up (a unit can offer more
 // than one; a school can request more than one). Same three concepts as the
 // tiers above: sharing (T3), sharing + booth (T2), hands-on (T1).
@@ -135,6 +117,23 @@ export function engagementTypesForLevel(level) {
   return HANDS_ON_LEVELS.includes(level)
     ? ENGAGEMENT_TYPES
     : ENGAGEMENT_TYPES.filter((t) => t.value !== "hands_on");
+}
+
+// Ambassadors never do hands-on (Tier 1) — that needs a unit's equipment and
+// supervision — so their multi-select drops that option entirely rather than
+// showing a choice they could never actually deliver.
+export const AMBASSADOR_ENGAGEMENT_TYPES = ENGAGEMENT_TYPES.filter(
+  (t) => t.value !== "hands_on"
+);
+
+// Collapses a multi-select ENGAGEMENT_TYPES array down to the single mobility
+// value ("sharing" | "sharing_booth") that tiersFor/unitTiers and the catalog
+// still key off of. Offering sharing_booth or hands_on either one unlocks the
+// full sharing_booth tier gate (a unit that can do hands-on can also share).
+export function mobilityFromEngagementTypes(types = []) {
+  return types.includes("hands_on") || types.includes("sharing_booth")
+    ? "sharing_booth"
+    : "sharing";
 }
 
 // ── Provider ceilings ─────────────────────────────────────────────────
@@ -224,9 +223,9 @@ export const SCHOOL_LEVELS = [
 // the Military Expert track ME3–ME8.
 export const RANKS = [
   // Enlisted ranks (PTE–CFC) are for privates and corporals in the SAF and MINDEF.
-  { value: "pte", label: "Pte — Private" },
-  { value: "lcp", label: "Lcp — Lance Corporal" },
-  { value: "cpl", label: "Cpl — Corporal" },
+  { value: "pte", label: "PTE — Private" },
+  { value: "lcp", label: "LCP — Lance Corporal" },
+  { value: "cpl", label: "CPL — Corporal" },
   { value: "cfc", label: "CFC — Corporal First Class" },
 
   // Specialist ranks (SCT–CWO) are for specialists in the SAF and MINDEF.
@@ -243,16 +242,6 @@ export const RANKS = [
   { value: "swo", label: "SWO — Senior Warrant Officer" },
   { value: "cwo", label: "CWO — Chief Warrant Officer" },
 
-  // Military Expert ranks (ME1–ME8) are for specialists in the SAF and MINDEF.
-  { value: "me1", label: "ME1 — Military Expert 1" },
-  { value: "me2", label: "ME2 — Military Expert 2" },
-  { value: "me3", label: "ME3 — Military Expert 3" },
-  { value: "me4", label: "ME4 — Military Expert 4" },
-  { value: "me5", label: "ME5 — Military Expert 5" },
-  { value: "me6", label: "ME6 — Military Expert 6" },
-  { value: "me7", label: "ME7 — Military Expert 7" },
-  { value: "me8", label: "ME8 — Military Expert 8" },
-
   // Officer ranks (OCT–LTG) are for commissioned officers in the SAF and MINDEF.
   { value: "oct", label: "OCT — Officer Cadet" },
   { value: "2lt", label: "2LT — Second Lieutenant" },
@@ -266,6 +255,16 @@ export const RANKS = [
   { value: "mg", label: "MG — Major-General" },
   { value: "ltg", label: "LTG — Lieutenant-General" },
 
+  // Military Expert ranks (ME1–ME8) are for specialists in the SAF and MINDEF.
+  { value: "me1", label: "ME1 — Military Expert 1" },
+  { value: "me2", label: "ME2 — Military Expert 2" },
+  { value: "me3", label: "ME3 — Military Expert 3" },
+  { value: "me4", label: "ME4 — Military Expert 4" },
+  { value: "me5", label: "ME5 — Military Expert 5" },
+  { value: "me6", label: "ME6 — Military Expert 6" },
+  { value: "me7", label: "ME7 — Military Expert 7" },
+  { value: "me8", label: "ME8 — Military Expert 8" },
+  
   // Defence Executive ranks (DX1–DX18) are for senior officers in the SAF and MINDEF.
   { value: "dx1", label: "DX1 — Defence Executive 1" },
   { value: "dx2", label: "DX2 — Defence Executive 2" },
@@ -662,3 +661,58 @@ export const SECONDARY_SCHOOLS = [
   { value: "Zhonghua Secondary School", label: "Zhonghua Secondary School" },
   { value: "Other", label: "Other" },
 ];
+
+export const JUNIOR_COLLEGES = [
+  { value: "Anderson Serangoon Junior College", label: "Anderson Serangoon Junior College" },
+  { value: "Anglo-Chinese Junior College", label: "Anglo-Chinese Junior College" },
+  { value: "Catholic Junior College", label: "Catholic Junior College" },
+  { value: "Eunoia Junior College", label: "Eunoia Junior College" },
+  { value: "Hwa Chong Institution", label: "Hwa Chong Institution" },
+  { value: "Jurong Pioneer Junior College", label: "Jurong Pioneer Junior College" },
+  { value: "Millennia Institute", label: "Millennia Institute" },
+  { value: "Nanyang Junior College", label: "Nanyang Junior College" },
+  { value: "National Junior College", label: "National Junior College" },
+  { value: "Raffles Institution", label: "Raffles Institution" },
+  { value: "St. Andrew's Junior College", label: "St. Andrew's Junior College" },
+  { value: "Tampines Meridian Junior College", label: "Tampines Meridian Junior College" },
+  { value: "Temasek Junior College", label: "Temasek Junior College" },
+  { value: "Victoria Junior College", label: "Victoria Junior College" },
+  { value: "Yishun Innova Junior College", label: "Yishun Innova Junior College" },
+  { value: "Other", label: "Other" },
+];
+
+export const POLYTECHNICS = [
+  { value: "Nanyang Polytechnic", label: "Nanyang Polytechnic" },
+  { value: "Ngee Ann Polytechnic", label: "Ngee Ann Polytechnic" },
+  { value: "Republic Polytechnic", label: "Republic Polytechnic" },
+  { value: "Singapore Polytechnic", label: "Singapore Polytechnic" },
+  { value: "Temasek Polytechnic", label: "Temasek Polytechnic" },
+  { value: "Other", label: "Other" },
+];
+
+export const ITE_COLLEGES = [
+  { value: "ITE College Central", label: "ITE College Central" },
+  { value: "ITE College East", label: "ITE College East" },
+  { value: "ITE College West", label: "ITE College West" },
+  { value: "Other", label: "Other" },
+];
+
+// The dropdown a school's name is picked from, keyed by academic level.
+// Kindergarten has no fixed list — schools sign up with a free-text name
+// instead (see SchoolSignupPage), so it returns null here.
+export function schoolOptionsForLevel(level) {
+  switch (level) {
+    case "primary":
+      return PRIMARY_SCHOOLS;
+    case "secondary":
+      return SECONDARY_SCHOOLS;
+    case "jc":
+      return JUNIOR_COLLEGES;
+    case "poly":
+      return POLYTECHNICS;
+    case "ite":
+      return ITE_COLLEGES;
+    default:
+      return null;
+  }
+}

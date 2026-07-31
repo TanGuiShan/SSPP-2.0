@@ -1,0 +1,71 @@
+@startuml architecture
+title SSPP System Architecture\n<size:12><i>from TanGuiShan/SSPP-2.0 — Frontend/my-react-app, firestore.rules, server.js, Backend/</i></size>
+
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam defaultTextAlignment center
+
+cloud "Vercel\n(static hosting, SPA rewrites\nvia vercel.json)" as vercel
+
+package "Browser — React 18 + Vite SPA" {
+  [Pages\nschool/ · army/ · admin/ · auth/ · public/] as pages
+  [Layouts\nSchoolLayout · ArmyLayout · AdminLayout\nAuthLayout · SignupLayout] as layouts
+  [Shared Components\ncommon/ · formation/ · layout/ · match/] as components
+  [Hooks\nuseAuth · useEngagements · useTiers\nuseCollection · useForm · useModal] as hooks
+  [Firebase Service Layer\nauth · profile · catalog · inventory\ntiers · feedback . service.js] as services
+
+  pages --> layouts
+  pages --> components
+  pages --> hooks
+  hooks --> services
+}
+
+cloud "Firebase Platform\n(project: gen-lang-client-0887349477)" {
+  [Firebase Authentication] as fbauth
+
+  database "Cloud Firestore" {
+    [users] as col_users
+    [schools] as col_schools
+    [formations\nambassadors] as col_catalog
+    [providers] as col_providers
+    [interestForms\nmatches] as col_matches
+    [inventory] as col_inventory
+    [tiers] as col_tiers
+    [feedback] as col_feedback
+  }
+
+  [firestore.rules\nsecurity rules — role +\napproved + ownership checks] as rules
+}
+
+package "Legacy / not wired to any page — present in repo only" <<dashed>> {
+  node "Node.js  (root server.js)" as node
+  [Express\nBackend/routes/auth.js] as express
+  database "MSSQL\nBackend/db.js" as mssql
+}
+
+vercel --> pages : serves built\nstatic assets
+
+services --> fbauth : signIn / signUp /\nonAuthStateChanged
+services --> col_users
+services --> col_schools
+services --> col_catalog
+services --> col_providers
+services --> col_matches
+services --> col_inventory
+services --> col_tiers
+services --> col_feedback
+col_tiers ..> rules : read: public\nwrite: admin only
+col_matches ..> rules : role + ownership +\nrosterProviderIds checks
+
+node --> express : mounts /auth
+express --> mssql : bcrypt hash +\nJWT issue
+
+note bottom of express
+  src/api/authApi.js and verifyApi.js call these
+  endpoints, but are not imported by any current
+  page or hook — a leftover pre-Firebase prototype.
+  The live app authenticates entirely through the
+  Firebase Service Layer above.
+end note
+
+@enduml

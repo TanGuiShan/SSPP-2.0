@@ -1,0 +1,43 @@
+@startuml seq02_login
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 1.2
+skinparam roundcorner 8
+skinparam maxMessageSize 220
+skinparam sequence {
+  ActorBorderColor #2b6fb3
+  ActorBackgroundColor #e7edf5
+  ParticipantBorderColor #2b6fb3
+  ParticipantBackgroundColor #bfe0f5
+  LifeLineBorderColor #888888
+  ArrowColor #222222
+  NoteBackgroundColor #fff6cf
+  NoteBorderColor #b8a23a
+}
+title Login & Approval Routing\n<size:12><i>from hooks/useAuth.jsx, routes/ProtectedRoute.jsx</i></size>
+
+actor "Existing User" as user
+boundary "LoginPage" as login
+control "AuthService" as auth
+database "Firestore\nusers/{uid}" as db
+
+autonumber 1
+
+user -> login ++ : submitCredentials(email, password)
+login -> auth ++ : signIn({ email, password })
+auth -> auth : signInWithEmailAndPassword()
+auth -> db ++ : getDoc(users/{uid})
+db --> auth -- : { role, approved, providerId }
+auth --> login -- : user profile
+
+alt approved == false
+  login -> user : redirect → /pending-approval (needsApproval)
+else role == school
+  login -> user : redirect → /school/dashboard
+else role == army-unit | army-ambassador
+  login -> user : redirect → /army/dashboard
+else role == admin
+  login -> user : redirect → /admin/dashboard
+end
+deactivate login
+
+@enduml

@@ -3,18 +3,19 @@ import { useNavigate } from "react-router-dom";
 import SignupLayout from "../../layouts/SignupLayout";
 import FormSection from "../../components/common/FormSection";
 import { Input, Select } from "../../components/common/Input";
-import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
+import { MultiSelect } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
 import { useAuth } from "../../hooks/useAuth";
 import { formations } from "../../data/formations";
 import {
-  UNIT_MOBILITY_OPTIONS,
+  ENGAGEMENT_TYPES,
   FORMATIONS,
   SCHOOL_LEVELS,
   RANKS,
   TOPICS,
+  mobilityFromEngagementTypes,
 } from "../../data/options";
 import { useTiers } from "../../hooks/useTiers";
 
@@ -29,7 +30,7 @@ export default function UnitSignupPage() {
   const { tiersFor } = useTiers();
 
   const { values, handleChange, setField } = useForm({
-    mobility: "",
+    engagementTypes: [],
     rank: "",
     fullName: "",
     appointment: "",
@@ -49,13 +50,16 @@ export default function UnitSignupPage() {
   const [error, setError] = useState("");
 
   // Tiers unlocked by the declared capability — shown so the user can see
-  // what picking each mobility option actually means for them.
-  const unlockedTiers = values.mobility ? tiersFor("unit", { mobility: values.mobility }) : [];
+  // what picking these engagement types actually means for them.
+  const derivedMobility = mobilityFromEngagementTypes(values.engagementTypes);
+  const unlockedTiers = values.engagementTypes.length
+    ? tiersFor("unit", { mobility: derivedMobility })
+    : [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!values.mobility) return setError("Choose what your unit can offer.");
+    if (values.engagementTypes.length === 0) return setError("Choose what your unit can offer.");
     if (!values.catalogUnitId) return setError("Select which unit you are registering.");
     if (!emailVerified) return setError("Verify your email before continuing.");
     if (!mobileVerified) return setError("Verify your mobile number before continuing.");
@@ -84,7 +88,8 @@ export default function UnitSignupPage() {
           appointment: values.appointment,
           unit: values.unit,
           formation: values.formation,
-          mobility: values.mobility,
+          engagementTypes: values.engagementTypes,
+          mobility: derivedMobility,
           topics: values.topics,
           levelsPreferred: values.levelsPreferred,
           mobile: values.mobile,
@@ -105,14 +110,13 @@ export default function UnitSignupPage() {
         <FormSection
           step="1"
           title="What can your unit offer?"
-          description="This sets the engagement tiers available to you. You can still choose a lower tier for any individual booking."
+          description="Pick as many as apply. This sets the engagement tiers available to you — you can still choose a lower tier for any individual booking."
         >
-          <RadioCards
-            name="mobility"
+          <MultiSelect
             required
-            options={UNIT_MOBILITY_OPTIONS}
-            value={values.mobility}
-            onChange={(v) => setField("mobility", v)}
+            options={ENGAGEMENT_TYPES}
+            value={values.engagementTypes}
+            onChange={(v) => setField("engagementTypes", v)}
           />
 
           {unlockedTiers.length > 0 && (

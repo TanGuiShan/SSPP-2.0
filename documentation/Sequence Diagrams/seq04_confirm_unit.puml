@@ -1,0 +1,46 @@
+@startuml seq04_confirm_unit
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 1.2
+skinparam roundcorner 8
+skinparam maxMessageSize 220
+skinparam sequence {
+  ActorBorderColor #2b6fb3
+  ActorBackgroundColor #e7edf5
+  ParticipantBorderColor #2b6fb3
+  ParticipantBackgroundColor #bfe0f5
+  LifeLineBorderColor #888888
+  ArrowColor #222222
+  NoteBackgroundColor #fff6cf
+  NoteBorderColor #b8a23a
+}
+title Confirm Engagement — Army Unit\n<size:12><i>from hooks/useEngagements.jsx — confirmAsUnit()  (no decline path exists)</i></size>
+
+actor "Army Unit" as unit
+boundary "ArmyMatchesPage" as page
+control "useEngagements()" as hook
+database "matches/{id}" as db
+
+autonumber 1
+
+unit -> page ++ : viewEngagement(matchId)
+unit -> page : confirmEngagement(equipment)
+page -> hook ++ : confirmAsUnit(matchId, equipment)
+hook -> db ++ : roster[unit].confirmed = true\n+ attach equipment[]
+db --> hook -- : updated
+hook -> hook : withDerivedStatus(match)\nisFullyConfirmed = roster.every(r => r.confirmed)
+
+alt isFullyConfirmed
+  hook -> db : status → "Confirmed"
+else else
+  hook -> db : status stays "Awaiting confirmation"
+end
+
+hook --> page -- : match
+deactivate page
+
+note over unit, hook
+  Providers have no decline / reject action anywhere in the UI —
+  confirm is the only state change a Unit can make on a proposed match
+end note
+
+@enduml

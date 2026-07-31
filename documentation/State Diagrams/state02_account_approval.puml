@@ -1,0 +1,22 @@
+@startuml state02_account_approval
+title Account Approval Status
+
+[*] --> Approved : createProfile\n(gov/edu email)
+[*] --> PendingApproval : createProfile\n(other email)
+
+PendingApproval --> Approved : Admin approves
+
+Approved --> [*]
+
+note right of PendingApproval
+  ProtectedRoute redirects every
+  visit to /pending-approval until
+  an Admin approves the account.
+end note
+
+note right of Approved
+  Full access to the account's
+  role-routed pages.
+end note
+
+@enduml

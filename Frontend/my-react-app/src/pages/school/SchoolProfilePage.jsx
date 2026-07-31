@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import { Input, Select } from "../../components/common/Input";
-import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
+import { MultiSelect } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import Modal from "../../components/common/Modal";
@@ -12,9 +12,10 @@ import { updateProfile } from "../../services/firebase/profile.service";
 import { TEST_MODE } from "../../config/testMode";
 import AvatarUpload from "../../components/common/AvatarUpload";
 import {
-  MOBILITY_OPTIONS,
+  ENGAGEMENT_TYPES,
   FORMATIONS,
   SCHOOL_APPOINTMENTS,
+  mobilityFromEngagementTypes,
 } from "../../data/options";
 
 export default function SchoolProfilePage() {
@@ -23,7 +24,7 @@ export default function SchoolProfilePage() {
   // Starts empty and is filled from the signed-in user's Firestore profile
   // once it loads (see the effect below). Field names mirror SchoolSignupPage.
   const { values, handleChange, setField, setValues } = useForm({
-    mobility: "",
+    engagementTypes: [],
     fullName: "",
     appointment: "",
     email: "",
@@ -40,7 +41,9 @@ export default function SchoolProfilePage() {
     if (!user) return;
     setValues((v) => ({
       ...v,
-      mobility: user.mobility ?? v.mobility,
+      // Older accounts only saved a single `mobility` string — wrap it into
+      // the array so they still show a selection instead of a blank field.
+      engagementTypes: user.engagementTypes ?? (user.mobility ? [user.mobility] : []),
       fullName: user.fullName ?? "",
       appointment: user.appointment ?? "",
       email: user.email ?? "",
@@ -69,6 +72,8 @@ export default function SchoolProfilePage() {
 
     if (!emailVerified) return setError("Re-verify your email before saving.");
     if (!mobileVerified) return setError("Re-verify your mobile number before saving.");
+    if (values.engagementTypes.length === 0)
+      return setError("Choose at least one engagement type.");
     if (values.unitsPreferred.length === 0)
       return setError("Pick at least one preferred formation.");
 
@@ -76,7 +81,8 @@ export default function SchoolProfilePage() {
 
     // updateProfile ignores role, approval and email (those can't change here).
     const changes = {
-      mobility: values.mobility,
+      engagementTypes: values.engagementTypes,
+      mobility: mobilityFromEngagementTypes(values.engagementTypes),
       fullName: values.fullName,
       appointment: values.appointment,
       mobile: values.mobile,
@@ -216,12 +222,12 @@ export default function SchoolProfilePage() {
             Used to suggest matches — you can still request a different type per booking
           </p>
 
-          <RadioCards
-            label="Engagement type"
-            name="mobility"
-            options={MOBILITY_OPTIONS}
-            value={values.mobility}
-            onChange={(v) => setField("mobility", v)}
+          <MultiSelect
+            label="Engagement types"
+            required
+            options={ENGAGEMENT_TYPES}
+            value={values.engagementTypes}
+            onChange={(v) => setField("engagementTypes", v)}
           />
 
           <MultiSelect

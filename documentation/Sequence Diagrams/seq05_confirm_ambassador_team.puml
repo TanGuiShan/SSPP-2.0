@@ -1,0 +1,44 @@
+@startuml seq05_confirm_ambassador_team
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 1.2
+skinparam roundcorner 8
+skinparam maxMessageSize 220
+skinparam sequence {
+  ActorBorderColor #2b6fb3
+  ActorBackgroundColor #e7edf5
+  ParticipantBorderColor #2b6fb3
+  ParticipantBackgroundColor #bfe0f5
+  LifeLineBorderColor #888888
+  ArrowColor #222222
+  NoteBackgroundColor #fff6cf
+  NoteBorderColor #b8a23a
+}
+title Confirm Engagement — Ambassador Team (Roster Confirmation)\n<size:12><i>from hooks/useEngagements.jsx — confirmAsAmbassador(), per-member</i></size>
+
+actor "Army Ambassador\n(each team member)" as amb
+boundary "ArmyMatchesPage" as page
+control "useEngagements()" as hook
+database "matches/{id}" as db
+
+autonumber 1
+
+amb -> page ++ : viewRoster(matchId)
+
+loop for each ambassador on the team
+  amb -> page : confirmAttendance()
+  page -> hook ++ : confirmAsAmbassador(matchId, ambassadorId)
+  hook -> db ++ : roster[ambassadorId].confirmed = true
+  db --> hook -- : updated
+  deactivate hook
+end
+
+hook -> hook : withDerivedStatus(match)\nisFullyConfirmed = roster.every(r => r.confirmed)
+
+alt every member confirmed
+  hook -> db : status → "Confirmed"
+else members still Awaiting
+  hook -> page : roster shows Confirmed / Awaiting\nbadge per member (EngagementRoster)
+end
+deactivate page
+
+@enduml

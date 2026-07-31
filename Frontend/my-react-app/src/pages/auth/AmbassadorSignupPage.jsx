@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import SignupLayout from "../../layouts/SignupLayout";
 import FormSection from "../../components/common/FormSection";
 import { Input, TextArea, Select, ComboBox } from "../../components/common/Input";
-import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
+import { MultiSelect } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
 import { useAuth } from "../../hooks/useAuth";
 import {
-  MOBILITY_OPTIONS,
+  AMBASSADOR_ENGAGEMENT_TYPES,
   MOBILITY_OF_ENGAGEMENT,
   SERVICE_SCHEME,
   FORMATIONS,
@@ -17,6 +17,7 @@ import {
   PRIMARY_SCHOOLS,
   SECONDARY_SCHOOLS,
   RANKS,
+  mobilityFromEngagementTypes,
 } from "../../data/options";
 
 /**
@@ -49,7 +50,7 @@ export default function AmbassadorSignupPage() {
     // Preferences
     preferredSchoolLevels: [],
     modalityOfEngagement: "",
-    mobility: "",
+    engagementTypes: [],
     remarks: "",
 
     // Disclaimer + account
@@ -78,7 +79,7 @@ export default function AmbassadorSignupPage() {
       return setError("Pick at least one school level.");
     if (!values.modalityOfEngagement)
       return setError("Choose how you'd like to be engaged.");
-    if (!values.mobility) return setError("Choose what you can offer.");
+    if (values.engagementTypes.length === 0) return setError("Choose what you can offer.");
     if (!values.disclaimer)
       return setError("You need to accept the disclaimer to continue.");
     if (values.password.length < 8)
@@ -108,7 +109,8 @@ export default function AmbassadorSignupPage() {
           mobile: values.mobile,
           preferredSchoolLevels: values.preferredSchoolLevels,
           modalityOfEngagement: values.modalityOfEngagement,
-          mobility: values.mobility,
+          engagementTypes: values.engagementTypes,
+          mobility: mobilityFromEngagementTypes(values.engagementTypes),
           remarks: values.remarks,
         },
       });
@@ -250,13 +252,13 @@ export default function AmbassadorSignupPage() {
             onChange={handleChange("modalityOfEngagement")}
           />
 
-          <RadioCards
+          <MultiSelect
             label="What can you offer on site?"
-            name="mobility"
             required
-            options={MOBILITY_OPTIONS}
-            value={values.mobility}
-            onChange={(v) => setField("mobility", v)}
+            hint="Pick every kind you're able to do — you can request a different one per booking later."
+            options={AMBASSADOR_ENGAGEMENT_TYPES}
+            value={values.engagementTypes}
+            onChange={(v) => setField("engagementTypes", v)}
           />
 
           <div className="sgds-radio-card-note">

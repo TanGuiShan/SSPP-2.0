@@ -29,7 +29,7 @@ function DetailRow({ label, children }) {
 // Shared tab definitions — same everywhere (see utils/tabs.js).
 // "Awaiting" is what used to be called "To confirm" here; the label is now
 // consistent with the school and admin views.
-const TABS = tabsFor([TAB.AWAITING, TAB.CONFIRMED, TAB.ALL]);
+const TABS = tabsFor([TAB.ALL, TAB.AWAITING, TAB.CONFIRMED, TAB.COMPLETED, TAB.CANCELLED]);
 
 export default function ArmyMatchesPage() {
   const { user } = useAuth();
@@ -59,12 +59,10 @@ export default function ArmyMatchesPage() {
   const myProviderName =
     user?.fullName ?? user?.schoolName ?? (isAmbassador ? "You" : "Your unit");
 
-  // Matches this provider is actually on (in the roster), excluding cancelled.
+  // Matches this provider is actually on (in the roster) — includes cancelled
+  // ones so the Cancelled tab has something to show.
   const relevant = useMemo(
-    () =>
-      matches.filter(
-        (m) => m.status !== "Cancelled" && m.roster?.some((r) => r.id === myProviderId)
-      ),
+    () => matches.filter((m) => m.roster?.some((r) => r.id === myProviderId)),
     [matches, myProviderId]
   );
 
@@ -164,7 +162,9 @@ export default function ArmyMatchesPage() {
         rows.map((m) => {
           // Open requests are school-confirmed, so providers never "confirm"
           // them — they just show as volunteered until the school decides.
-          const needsMe = !m.isOpen && pendingMine(m).length > 0;
+          // A cancelled match never needs confirming, even if its roster was
+          // never fully signed off before it was called off.
+          const needsMe = !m.isOpen && m.status !== "Cancelled" && pendingMine(m).length > 0;
           return (
             <button
               key={m.id}
@@ -223,8 +223,13 @@ export default function ArmyMatchesPage() {
 
             {/* Open requests are confirmed by the SCHOOL, so this is read-only
                 for providers: they see who volunteered but can't confirm or
-                withdraw. Direct-interest matches keep provider self-confirm. */}
-            {liveMatch.isOpen ? (
+                withdraw. Direct-interest matches keep provider self-confirm.
+                A cancelled match gets neither — there's nothing left to do. */}
+            {liveMatch.status === "Cancelled" ? (
+              <div className="rounded-lg bg-[#FEE2E2] text-[#B91C1C] px-4 py-3 text-sm mt-6">
+                This engagement was cancelled.
+              </div>
+            ) : liveMatch.isOpen ? (
               <div className="mt-6 space-y-3">
                 {liveMatch.status !== "Confirmed" && (
                   <div className="rounded-lg bg-[#FEF3C7] text-[#B45309] px-4 py-3 text-sm">

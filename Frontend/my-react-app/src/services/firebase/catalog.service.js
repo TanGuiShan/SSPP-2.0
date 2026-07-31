@@ -42,6 +42,7 @@ function unitDoc(ownerUid, p) {
     formation: p.formation || "",
     location: p.location || "",
     mobility: normalizeMobility(p.mobility),
+    engagementTypes: Array.isArray(p.engagementTypes) ? p.engagementTypes : [],
     topics: Array.isArray(p.topics) ? p.topics : [],
     levelsPreferred: Array.isArray(p.levelsPreferred) ? p.levelsPreferred : [],
     about: p.about || "",
@@ -62,6 +63,7 @@ function ambassadorDoc(ownerUid, p) {
     formation: p.formation || "",
     camp: p.camp || "",
     mobility: normalizeMobility(p.mobility),
+    engagementTypes: Array.isArray(p.engagementTypes) ? p.engagementTypes : [],
     topics: Array.isArray(p.topics) ? p.topics : [],
     levelsPreferred: Array.isArray(p.levelsPreferred)
       ? p.levelsPreferred

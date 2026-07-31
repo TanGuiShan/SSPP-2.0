@@ -1,0 +1,59 @@
+@startuml seq01_register
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 1.2
+skinparam roundcorner 8
+skinparam maxMessageSize 220
+skinparam sequence {
+  ActorBorderColor #2b6fb3
+  ActorBackgroundColor #e7edf5
+  ParticipantBorderColor #2b6fb3
+  ParticipantBackgroundColor #bfe0f5
+  LifeLineBorderColor #888888
+  ArrowColor #222222
+  NoteBackgroundColor #fff6cf
+  NoteBorderColor #b8a23a
+  BoxBorderColor #cccccc
+}
+skinparam title {
+  FontSize 20
+  FontStyle bold
+}
+
+title Register Account\n<size:12><i>from services/firebase/auth.service.js, profile.service.js, firestore.rules</i></size>
+
+actor "New User" as user
+boundary "SignupPage" as signup
+control "AuthService" as auth
+control "ProfileService" as profile
+database "users / providers" as db
+
+autonumber 1
+
+user -> signup ++ : submitSignupForm(role, email, password, fields)
+signup -> auth ++ : signUp({ email, password })
+auth -> auth : createUserWithEmailAndPassword()
+auth --> signup -- : uid, email
+signup -> signup : approved = govEmail(email)\n(*.gov.sg / *.edu.sg, anchored with $)
+signup -> profile ++ : createProfile({ uid, role, approved, ...fields })
+profile -> db ++ : setDoc(users/{uid}, { email, role, approved })
+
+alt role = army-unit | army-ambassador
+  profile -> db : claimProvider(providerId)\n→ setDoc(providers/{providerId})
+end
+deactivate db
+profile --> signup -- : profile created
+
+note over auth, db
+  Firestore rule: allow create if uid matches,
+  email matches token, role approved,
+  and approved == govEmail(token.email)
+end note
+
+alt approved == true
+  signup -> user : redirect → /{role}/dashboard
+else approved == false
+  signup -> user : redirect → /pending-approval
+end
+deactivate signup
+
+@enduml

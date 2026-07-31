@@ -1,0 +1,40 @@
+@startuml seq08_confirm_volunteer
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 1.2
+skinparam roundcorner 8
+skinparam maxMessageSize 220
+skinparam sequence {
+  ActorBorderColor #2b6fb3
+  ActorBackgroundColor #e7edf5
+  ParticipantBorderColor #2b6fb3
+  ParticipantBackgroundColor #bfe0f5
+  LifeLineBorderColor #888888
+  ArrowColor #222222
+  NoteBackgroundColor #fff6cf
+  NoteBorderColor #b8a23a
+}
+title Confirm Volunteer (Open Request)\n<size:12><i>from pages/school/InterestFormsPage.jsx, useEngagements.jsx — confirmVolunteer()</i></size>
+
+actor "School" as school
+boundary "InterestFormsPage" as page
+control "useEngagements()" as hook
+database "matches/{id}" as db
+
+autonumber 1
+
+school -> page ++ : reviewVolunteers(matchId)
+school -> page : confirmVolunteer(providerId)
+page -> hook ++ : confirmVolunteer(matchId, providerId)
+hook -> db ++ : roster[providerId].confirmed = true
+db --> hook -- : updated
+hook -> hook : targetFromConfirmed(match)\n+ withDerivedStatus()
+
+alt confirmed count >= volunteersNeeded
+  hook -> db : status → "Confirmed", target set
+else still short of volunteersNeeded
+  hook -> page : status stays "Awaiting confirmation"
+end
+deactivate hook
+deactivate page
+
+@enduml
