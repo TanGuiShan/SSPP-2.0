@@ -1,0 +1,53 @@
+@startuml roster_confirmation_aggregation
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam StateFontName Helvetica
+skinparam StateFontSize 13
+skinparam ArrowFontSize 11
+skinparam ArrowFontName Helvetica
+skinparam State {
+  BackgroundColor<<pending>> #FDEBD0
+  BackgroundColor<<confirmed>> #D5F5E3
+  BackgroundColor<<aggregate>> #D6EAF8
+  BackgroundColor<<terminal>> #A9DFBF
+  BorderColor #555555
+  FontColor #1B2631
+}
+
+title 6.11 Roster Confirmation Aggregation
+
+[*] --> RosterOpen : Engagement status\nbecomes Confirmed
+
+state "Roster Confirmation (Team of n Ambassadors)" as RosterOpen <<aggregate>> {
+
+  state "Per-Member Roster Entries" as Members {
+    state "RosterEntry [i], i = 1..n" as Entry {
+      [*] --> Awaiting
+      Awaiting : Badge = Awaiting
+      Confirmed : Badge = Confirmed
+      state Confirmed <<confirmed>>
+      Awaiting --> Confirmed : Ambassador i confirms\ntheir own attendance
+    }
+  }
+
+  --
+
+  state "Aggregate Roster Status" as Aggregate {
+    state PartiallyConfirmed <<pending>>
+    [*] --> PartiallyConfirmed
+    PartiallyConfirmed : k = count(RosterEntry = Confirmed)
+    PartiallyConfirmed : 0 <= k < n
+    PartiallyConfirmed --> PartiallyConfirmed : any RosterEntry\nAwaiting -> Confirmed\n(k still < n)
+    state FullyConfirmed <<terminal>>
+    PartiallyConfirmed --> FullyConfirmed : k == n\n(every RosterEntry Confirmed)
+    FullyConfirmed : Roster fully confirmed
+  }
+}
+
+RosterOpen --> [*] : FullyConfirmed reached
+
+note "Recomputed on every per-member\nconfirmation event; not a\nseparate user action." as N0
+
+note "The two regions above run concurrently: each RosterEntry\ntoggles independently (left), while the Aggregate region\n(right) recomputes k after every toggle and only advances\nto FullyConfirmed once k == n.\n\nEngagementRoster always renders each member's individual\nbadge alongside the aggregate, so School / Organiser can\nidentify exactly which members remain Awaiting even after\nthe roster is fully confirmed." as N1
+
+@enduml
