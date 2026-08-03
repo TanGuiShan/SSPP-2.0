@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import PageHeader from "../../components/common/PageHeader";
 import { Input, TextArea, Select } from "../../components/common/Input";
-import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
+import { MultiSelect } from "../../components/common/MultiSelect";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
 import { useAuth } from "../../hooks/useAuth";
@@ -10,11 +10,12 @@ import { publishProviderCatalog } from "../../services/firebase/catalog.service"
 import { TEST_MODE } from "../../config/testMode";
 import AvatarUpload from "../../components/common/AvatarUpload";
 import {
-  MOBILITY_OPTIONS,
+  AMBASSADOR_ENGAGEMENT_TYPES,
   FORMATIONS,
   SCHOOL_LEVELS,
   RANKS,
   TOPICS,
+  mobilityFromEngagementTypes,
 } from "../../data/options";
 
 export default function AmbassadorProfilePage() {
@@ -29,7 +30,7 @@ export default function AmbassadorProfilePage() {
     contactEmail: "",
     contactNumber: "",
     about: "",
-    mobility: "sharing",
+    engagementTypes: [],
     topics: [],
     levelsPreferred: [],
     photoURL: "",
@@ -53,7 +54,9 @@ export default function AmbassadorProfilePage() {
       contactEmail: user.email ?? "",
       contactNumber: user.contactNumber ?? user.mobile ?? "",
       about: user.about ?? user.remarks ?? "",
-      mobility: user.mobility ?? v.mobility,
+      // Older accounts only saved a single `mobility` string — wrap it into
+      // the array so they still show a selection instead of a blank field.
+      engagementTypes: user.engagementTypes ?? (user.mobility ? [user.mobility] : []),
       topics: user.topics ?? [],
       levelsPreferred: user.levelsPreferred ?? user.preferredSchoolLevels ?? [],
       photoURL: user.photoURL ?? "",
@@ -66,20 +69,26 @@ export default function AmbassadorProfilePage() {
   // not here. So we always show the solo capability on this page.
   const handleSave = async () => {
     setError("");
+    if (values.engagementTypes.length === 0) {
+      return setError("Choose at least one thing you can offer on site.");
+    }
+
+    const changes = { ...values, mobility: mobilityFromEngagementTypes(values.engagementTypes) };
+
     try {
       if (!TEST_MODE && user?.uid) {
-        await updateProfile(user.uid, values);
+        await updateProfile(user.uid, changes);
         if (user.providerId) {
           // Publish/refresh the public browse card schools see.
           await publishProviderCatalog({
             role: user.role,
             providerId: user.providerId,
             ownerUid: user.uid,
-            profile: { ...user, ...values },
+            profile: { ...user, ...changes },
           });
         }
       }
-      applyProfileChanges(values);
+      applyProfileChanges(changes);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -192,11 +201,12 @@ export default function AmbassadorProfilePage() {
           Sets the engagement tiers you appear under when schools search
         </p>
 
-        <RadioCards
-          name="mobility"
-          options={MOBILITY_OPTIONS}
-          value={values.mobility}
-          onChange={(v) => setField("mobility", v)}
+        <MultiSelect
+          required
+          hint="Pick every kind you're able to do."
+          options={AMBASSADOR_ENGAGEMENT_TYPES}
+          value={values.engagementTypes}
+          onChange={(v) => setField("engagementTypes", v)}
         />
 
         <div className="rounded-lg bg-[#F5F5F4] p-4">

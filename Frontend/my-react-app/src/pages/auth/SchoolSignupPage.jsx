@@ -2,28 +2,32 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SignupLayout from "../../layouts/SignupLayout";
 import FormSection from "../../components/common/FormSection";
-import { Input, Select } from "../../components/common/Input";
-import { MultiSelect, RadioCards } from "../../components/common/MultiSelect";
+import { Input, Select, ComboBox } from "../../components/common/Input";
+import { MultiSelect } from "../../components/common/MultiSelect";
 import VerifiedField from "../../components/common/VerifiedField";
 import Button from "../../components/common/Button";
 import { useForm } from "../../hooks/useForm";
 import { useAuth } from "../../hooks/useAuth";
 import {
-  MOBILITY_OPTIONS,
+  ENGAGEMENT_TYPES,
   FORMATIONS,
   SCHOOL_APPOINTMENTS,
+  SCHOOL_LEVELS,
+  schoolOptionsForLevel,
+  mobilityFromEngagementTypes,
 } from "../../data/options";
 
 export default function SchoolSignupPage() {
   const navigate = useNavigate();
   const { signup } = useAuth();
 
-  const { values, handleChange, setField } = useForm({
-    mobility: "",
+  const { values, handleChange, setField, setValues } = useForm({
+    engagementTypes: [],
     fullName: "",
     appointment: "",
     email: "",
     mobile: "",
+    academicLevel: "",
     schoolName: "",
     address: "",
     postalCode: "",
@@ -32,6 +36,16 @@ export default function SchoolSignupPage() {
     confirm: "",
   });
 
+  // Kindergartens don't have a fixed name list, so their name is free text —
+  // every other level picks from a dropdown (see schoolOptionsForLevel).
+  const isKindergarten = values.academicLevel === "kindergarten";
+  const schoolOptions = schoolOptionsForLevel(values.academicLevel);
+
+  // Changing the level invalidates whatever name was picked from the OLD
+  // level's list, so clear it rather than leave a stale value selected.
+  const handleLevelChange = (e) =>
+    setValues((v) => ({ ...v, academicLevel: e.target.value, schoolName: "" }));
+
   const [emailVerified, setEmailVerified] = useState(false);
   const [mobileVerified, setMobileVerified] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +53,9 @@ export default function SchoolSignupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!values.mobility) return setError("Choose an engagement type.");
+    if (values.engagementTypes.length === 0) return setError("Choose at least one engagement type.");
+    if (!values.academicLevel) return setError("Select your school's academic level.");
+    if (!values.schoolName.trim()) return setError("Enter your school's name.");
     if (!emailVerified) return setError("Verify your email before continuing.");
     if (!mobileVerified) return setError("Verify your mobile number before continuing.");
     if (values.password.length < 8) return setError("Password needs at least 8 characters.");
@@ -58,9 +74,11 @@ export default function SchoolSignupPage() {
         password: values.password,
         role: "school",
         profile: {
-          mobility: values.mobility,
+          engagementTypes: values.engagementTypes,
+          mobility: mobilityFromEngagementTypes(values.engagementTypes),
           fullName: values.fullName,
           appointment: values.appointment,
+          academicLevel: values.academicLevel,
           schoolName: values.schoolName,
           address: values.address,
           postalCode: values.postalCode,
@@ -83,14 +101,13 @@ export default function SchoolSignupPage() {
         <FormSection
           step="1"
           title="Engagement type"
-          description="What kind of engagement are you looking for? You can request a different type per booking later."
+          description="What kinds of engagement are you looking for? Pick as many as apply — you can request a different type per booking later."
         >
-          <RadioCards
-            name="mobility"
+          <MultiSelect
             required
-            options={MOBILITY_OPTIONS}
-            value={values.mobility}
-            onChange={(v) => setField("mobility", v)}
+            options={ENGAGEMENT_TYPES}
+            value={values.engagementTypes}
+            onChange={(v) => setField("engagementTypes", v)}
           />
         </FormSection>
 
@@ -137,13 +154,37 @@ export default function SchoolSignupPage() {
         </FormSection>
 
         <FormSection step="3" title="School details">
-          <Input
-            label="School name"
+          <Select
+            label="Academic level"
             required
-            placeholder="e.g. Swiss Cottage Secondary School"
-            value={values.schoolName}
-            onChange={handleChange("schoolName")}
+            placeholder="Select academic level"
+            options={SCHOOL_LEVELS}
+            value={values.academicLevel}
+            onChange={handleLevelChange}
           />
+
+          {isKindergarten ? (
+            <Input
+              label="School name"
+              required
+              placeholder="e.g. SWISS COTTAGE KINDERGARTEN"
+              hintText="Enter in upper case."
+              value={values.schoolName}
+              onChange={(e) => setField("schoolName", e.target.value.toUpperCase())}
+            />
+          ) : (
+            <ComboBox
+              label="School name"
+              required
+              placeholder={
+                values.academicLevel ? "Search or select your school" : "Select academic level first"
+              }
+              options={schoolOptions ?? []}
+              value={values.schoolName}
+              onChange={(v) => setField("schoolName", v)}
+            />
+          )}
+
           <Input
             label="School address"
             required

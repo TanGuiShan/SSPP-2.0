@@ -1,0 +1,45 @@
+@startuml seq10_admin_escalation
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 1.2
+skinparam roundcorner 8
+skinparam maxMessageSize 220
+skinparam sequence {
+  ActorBorderColor #2b6fb3
+  ActorBackgroundColor #e7edf5
+  ParticipantBorderColor #2b6fb3
+  ParticipantBackgroundColor #bfe0f5
+  LifeLineBorderColor #888888
+  ArrowColor #222222
+  NoteBackgroundColor #fff6cf
+  NoteBorderColor #b8a23a
+}
+title Admin Escalation — Assign Provider\n<size:12><i>from hooks/useEngagements.jsx — isEscalated(), assignProvider()  (the one carve-out to "monitor only")</i></size>
+
+actor "Stakeholder\nAdmin" as admin
+boundary "AdminDashboardPage" as page
+control "useEngagements()" as hook
+database "matches/{id}" as db
+
+autonumber 1
+
+admin -> page ++ : viewDashboard()
+page -> hook : getMatches()
+hook -> hook : isEscalated(match) =\nisOpen && status==="Open" &&\n(now - createdAt) >= 7 days
+hook --> page : flagged matches
+
+alt request escalated — left Open 7+ days
+  admin -> page : assignProvider(matchId, provider)
+  page -> hook ++ : assignProvider(matchId, provider)
+  hook -> hook : → volunteerForRequest(matchId,\n{ ...provider, assignedByAdmin:true })
+  hook -> db ++ : roster.push({ ..., assignedByAdmin:true })
+  db --> hook -- : updated
+  deactivate hook
+end
+deactivate page
+
+note over admin, hook
+  Admin cannot otherwise create, confirm, or cancel a match —
+  this escalation path is the only exception to "monitor only"
+end note
+
+@enduml

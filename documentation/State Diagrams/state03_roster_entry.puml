@@ -1,0 +1,28 @@
+@startuml state03_roster_entry
+title Roster Entry Confirmation (per member)
+
+[*] --> Volunteered : volunteerForRequest\n(open request)
+[*] --> AwaitingConfirmation : buildRoster\n(direct interest form)
+[*] --> AwaitingConfirmation : assignProvider\n(Admin escalation)
+
+Volunteered --> AwaitingConfirmation : confirmVolunteer\n(School accepts)
+Volunteered --> [*] : removeVolunteer\n(self-withdraw >30 days,\nor Admin removes)
+
+AwaitingConfirmation --> Confirmed : confirmAsUnit /\nconfirmAsAmbassador /\nconfirmVolunteer
+AwaitingConfirmation --> [*] : removeVolunteer\n(Admin removes)
+
+Confirmed --> [*]
+
+note left of Volunteered
+  Only exists for OPEN requests.
+  A direct interest form skips
+  straight to AwaitingConfirmation.
+end note
+
+note bottom of Confirmed
+  Never reverts. The only way a
+  Confirmed entry changes is an
+  Admin deleting it outright.
+end note
+
+@enduml

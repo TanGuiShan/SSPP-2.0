@@ -1,0 +1,40 @@
+@startuml seq09_withdraw_volunteering
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 1.2
+skinparam roundcorner 8
+skinparam maxMessageSize 220
+skinparam sequence {
+  ActorBorderColor #2b6fb3
+  ActorBackgroundColor #e7edf5
+  ParticipantBorderColor #2b6fb3
+  ParticipantBackgroundColor #bfe0f5
+  LifeLineBorderColor #888888
+  ArrowColor #222222
+  NoteBackgroundColor #fff6cf
+  NoteBorderColor #b8a23a
+}
+title Withdraw Volunteering\n<size:12><i>from hooks/useEngagements.jsx — canWithdrawVolunteer(), removeVolunteer()</i></size>
+
+actor "Provider\n(Unit / Ambassador)" as provider
+boundary "ArmyMatchesPage" as page
+control "useEngagements()" as hook
+database "matches/{id}" as db
+
+autonumber 1
+
+provider -> page ++ : viewMyVolunteeredRequest(matchId)
+page -> page : canWithdrawVolunteer(match)\n= (date - now) > 30 days
+
+alt more than 30 days before the event
+  provider -> page : withdraw()
+  page -> hook ++ : removeVolunteer(matchId, myProviderId)
+  hook -> db ++ : roster entry removed
+  db --> hook -- : updated
+  hook -> hook : withDerivedStatus()
+  deactivate hook
+else 30 days or less before the event
+  page -> provider : withdraw option hidden —\nonly an Admin can remove this volunteer now
+end
+deactivate page
+
+@enduml

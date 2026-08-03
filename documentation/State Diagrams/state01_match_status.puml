@@ -1,0 +1,44 @@
+@startuml state01_match_status
+title Match Status Lifecycle
+
+[*] --> OpenRequest : submitOpenRequest()
+[*] --> DirectRequest : submitInterest()
+
+state OpenRequest {
+  state "Posted" as Posted
+  state "Staffing" as Staffing
+  [*] --> Posted
+  Posted --> Staffing : volunteer /\nassignProvider
+  Staffing --> Posted : removeVolunteer\n(roster empties)
+  Staffing --> Staffing : volunteer\n(more join)
+}
+
+state DirectRequest {
+  state "Proposed" as Proposed
+  [*] --> Proposed
+  Proposed --> Proposed : confirmAsAmbassador\n(one of several)
+}
+
+OpenRequest --> Confirmed : confirmVolunteer\n[confirmed >= needed]
+DirectRequest --> Confirmed : confirmAsUnit /\nconfirmAsAmbassador\n[isFullyConfirmed]
+Confirmed --> OpenRequest : removeVolunteer\n[confirmed < needed]
+
+OpenRequest --> Cancelled : cancelMatch
+DirectRequest --> Cancelled : cancelMatch /\nwithdrawInterest
+Confirmed --> Cancelled : cancelMatch
+
+Cancelled --> [*]
+
+note right of DirectRequest
+  Providers cannot decline —
+  the only forward action is
+  to confirm (per member for
+  an ambassador team).
+end note
+
+note bottom of Cancelled
+  Terminal. withDerivedStatus()
+  returns early once Cancelled.
+end note
+
+@enduml
