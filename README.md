@@ -29,6 +29,7 @@ This document covers both the product (for stakeholders) and the implementation 
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
 - [Architecture Notes](#architecture-notes)
+- [Documentation](#documentation)
 - [Contributing](#contributing)
 
 ---
@@ -126,11 +127,13 @@ These govern eligibility and matching logic across the platform:
 ### Quickstart
 
 ```bash
-git clone <repo-url>
-cd sspp
+git clone https://github.com/TanGuiShan/SSPP-2.0.git
+cd SSPP-2.0
 npm install
 npm run dev
 ```
+
+`npm run dev` at the repo root runs `tsx server.js`, which hosts the Vite dev middleware for `Frontend/my-react-app`.
 
 ### Build for production
 
@@ -139,7 +142,7 @@ npm run build
 ```
 
 > [!NOTE]
-> Update these commands if your `package.json` scripts differ from the Vite defaults.
+> `npm run build` runs `vite build` inside `Frontend/my-react-app`. Production deploys go to Vercel as a static SPA (see [Architecture Notes](#architecture-notes)).
 
 ### Demo / Test Mode
 
@@ -208,6 +211,23 @@ src
 **Known gaps**
 - `deriveStockFromMatches` is implemented but dormant, pending the ambassador equipment-selection stock options list.
 - Some code paths are still marked `── REAL`, `TODO(real-flow)`, `TODO(real-auth)` alongside an active demo path — these predate the Firestore integration and are worth revisiting to confirm whether they're still needed.
+
+---
+
+## Documentation
+
+The [`documentation/`](./documentation) folder contains the full Software Requirements Specification and supporting diagrams, produced alongside the codebase.
+
+| Artifact | Contents | Location |
+|---|---|---|
+| **SRS (Word doc)** | Data dictionary, functional/non-functional requirements, use cases | [`SRS_SSPP.docx`](./documentation/SRS_SSPP.docx) |
+| **Use Case Diagram** | System-level use case overview | [`Use Case Diagram/`](./documentation/Use%20Case%20Diagram) |
+| **Class Diagram** | Boundary-Control-Entity class structure | [`Class Diagram/`](./documentation/Class%20Diagram) |
+| **Sequence Diagrams** | 10 flows — register, login, submit interest, confirm unit, confirm ambassador team, submit open request, volunteer, confirm volunteer, withdraw, admin escalation (PlantUML source + rendered PNG/SVG) | [`Sequence Diagrams/`](./documentation/Sequence%20Diagrams) |
+| **State Diagrams** | Match status, account approval, roster entry, roster confirmation aggregation | [`State Diagrams/`](./documentation/State%20Diagrams) |
+| **Dialog Map** | Screen-to-screen navigation flow | [`Dialog Map/`](./documentation/Dialog%20Map) |
+| **System Architecture** | Deployment/swimlane diagram | [`System Architecture (Deployment)/`](./documentation/System%20Architecture%20%28Deployment%29) |
+| **UI Mockups** | 43 role-based screens across School, Army Unit, Army Ambassador, Admin, and public flows | [`UI MockUp/`](./documentation/UI%20MockUp) |
 
 ---
 
